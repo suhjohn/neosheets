@@ -1,4 +1,4 @@
-import * as ts from "typescript";
+declare const ts: typeof import("typescript");
 
 interface FunctionInfo {
   name: string;
@@ -15,7 +15,7 @@ export function analyzeFunctions(code: string): FunctionInfo[] {
   );
   const functionInfos: FunctionInfo[] = [];
 
-  function visit(node: ts.Node) {
+  function visit(node: unknown) {
     if (ts.isFunctionDeclaration(node) && node.name) {
       const name = node.name.text;
 

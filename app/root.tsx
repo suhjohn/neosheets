@@ -76,6 +76,7 @@ function App() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
+        <script src="https://unpkg.com/typescript@latest/lib/typescript.js" />
       </head>
       <body className="overscroll-none">
         <QueryClientProvider client={queryClient}>

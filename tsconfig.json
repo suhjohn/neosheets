@@ -18,7 +18,9 @@
       "@remix-run/node",
       "vite/client",
       "jest",
-      "node"
+      "node",
+      "@remix-run/cloudflare",
+      "@cloudflare/workers-types"
     ],
     "isolatedModules": true,
     "esModuleInterop": true,

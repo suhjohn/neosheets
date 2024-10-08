@@ -3,7 +3,6 @@ import { DEFAULT_LINE_HEIGHT } from "@/constants";
 import { CellState, SheetState, type CellAddress } from "@/types/sheet";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import ts from "typescript";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -16,18 +15,6 @@ export function generateExcelHeaders(length: number): string[] {
   }
   return headers;
 }
-
-export const transpileTypeScript = (typeScriptCode: string) => {
-  // Transpile the TypeScript code to JavaScript using the TypeScript compiler API
-  const transpiled = ts.transpileModule(typeScriptCode, {
-    compilerOptions: {
-      module: ts.ModuleKind.CommonJS,
-      esModuleInterop: true,
-      noImplicitAny: true,
-    },
-  });
-  return transpiled.outputText;
-};
 
 export function formatAppleDate(dateStr: string) {
   const date = new Date(dateStr);
@@ -372,7 +359,8 @@ export const generateFillSequence = (
   const sourceKeys: string[] = [];
 
   // **Collect source data up to and including the fillRange.start.row**
-  for (let row = 0; row <= fillRange.start.row; row++) { // Changed from < to <=
+  for (let row = 0; row <= fillRange.start.row; row++) {
+    // Changed from < to <=
     const key = `${fillRange.start.col}-${row}`;
     if (dataToFill[key]) {
       sourceData.push(dataToFill[key].value);
@@ -392,7 +380,9 @@ export const generateFillSequence = (
 
   for (let i = 0; i < fillLength; i++) {
     const sourceIndex = i % patternLength;
-    const [sourceCol, sourceRow] = sourceKeys[sourceIndex].split("-").map(Number);
+    const [sourceCol, sourceRow] = sourceKeys[sourceIndex]
+      .split("-")
+      .map(Number);
     const targetRow = fillRange.start.row + i + 1; // +1 to start filling from the next row
     const targetKey = `${sourceCol}-${targetRow}`;
 

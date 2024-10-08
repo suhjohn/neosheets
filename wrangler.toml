@@ -1,0 +1,7 @@
+name = "neosheets"
+
+pages_build_output_dir = "./build/client"
+
+compatibility_flags = ["nodejs_compat"]
+
+compatibility_date = "2024-10-04"

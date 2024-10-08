@@ -37,7 +37,7 @@ const DEFAULT_CELL_STATE: CellState = {
 };
 
 export const initialState: SheetState = {
-  id: v4(),
+  id: "",
   name: `Sheet 1`,
   cellStates: Array.from({ length: DEFAULT_COLUMN_COUNT }, () => ({
     ...Array.from({ length: DEFAULT_ROW_COUNT }, () => {

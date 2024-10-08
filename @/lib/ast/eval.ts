@@ -5,9 +5,10 @@ import {
   type CellAddress,
   type CellStates,
 } from "@/types/sheet";
-import ts from "typescript";
 import { tokenize } from "./lexer";
 import { parse } from "./parser";
+
+declare const ts: typeof import("typescript");
 
 // Add this new error class
 export class CircularDependencyError extends Error {
