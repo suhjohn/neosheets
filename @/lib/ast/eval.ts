@@ -113,7 +113,8 @@ function evaluateAst(
         argString = args.join(", ");
       }
       // Adjust the function call accordingly
-      return eval(`${transpiledCode};\nrun(${argString});`);
+      const res = new Function(`${transpiledCode};\nreturn run(${argString});`)();
+      return res;
     }
     case "ObjectLiteral": {
       const obj: { [key: string]: unknown } = {};
