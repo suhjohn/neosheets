@@ -1,17 +1,45 @@
+// hoooks/useFunction.ts
+
+import { DEFAULT_FUNCTIONS } from "@/fixtures";
 import { localForageInstance } from "@/lib/storage";
-import { FunctionType } from "@/types/sheet";
+import { ChatMessageSchema } from "@/types/chat";
+import { type FunctionType } from "@/types/sheet";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 
-const KEY = "functions";
+export const KEY = "functions";
 
-export const CreateFunctionArgs = z.object({
+export const CreateBaseFunctionArgs = z.object({
   functionName: z.string().min(1),
   functionBody: z.string(),
   description: z.string(),
 });
-export type CreateFunctionArgsType = z.infer<typeof CreateFunctionArgs>;
+export type CreateBaseFunctionArgsType = z.infer<typeof CreateBaseFunctionArgs>;
+
+export const CreateLLMFunctionArgs = z.object({
+  resourceId: z.string(),
+  model: z.string(),
+  messages: z.array(ChatMessageSchema),
+  prompt: z.string().nullable(),
+  args: z.string(),
+  outputPath: z.array(z.string().or(z.number())).optional(),
+});
+
+export const CreateLLMFunctionArgsInput = z.object({
+  resourceId: z.string(),
+  model: z.string(),
+  messages: z.array(ChatMessageSchema),
+  prompt: z.string().nullable(),
+  args: z.string(),
+  outputPath: z.array(z.string().or(z.number())).optional(),
+});
+
+export type CreateLLMFunctionArgsType = z.infer<typeof CreateLLMFunctionArgs>;
+export type CreateLLMFunctionArgsInputType = z.infer<
+  typeof CreateLLMFunctionArgsInput
+>;
 
 export const UpdateFunctionArgs = z.object({
   id: z.string(),
@@ -21,16 +49,30 @@ export const UpdateFunctionArgs = z.object({
 });
 export type UpdateFunctionArgsType = z.infer<typeof UpdateFunctionArgs>;
 
+export const UpdateLLMFunctionArgs = z.object({
+  id: z.string(),
+  resourceId: z.string(),
+  model: z.string(),
+  messages: z.array(ChatMessageSchema),
+  prompt: z.string().nullable(),
+  args: z.string(),
+  outputPath: z.array(z.string().or(z.number())).optional(),
+});
+
+export type UpdateLLMFunctionArgsType = z.infer<typeof UpdateLLMFunctionArgs>;
+
 export const useCreateFunction = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ["createFunction"],
-    mutationFn: async (args: CreateFunctionArgsType) => {
+    mutationFn: async (args: CreateBaseFunctionArgsType) => {
       const functions =
         (await localForageInstance.getItem<FunctionType[]>(KEY)) || [];
       const newFunction = {
         id: uuidv4(),
         ...args,
+        createdBy: "user",
+        type: "function" as const,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -46,11 +88,52 @@ export const useCreateFunction = () => {
   });
 };
 
+export const useCreateLlmFunction = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ["createLlmFunction"],
+    mutationFn: async (
+      args: CreateLLMFunctionArgsType & CreateBaseFunctionArgsType
+    ) => {
+      const functions =
+        (await localForageInstance.getItem<FunctionType[]>(KEY)) || [];
+      const newFunction = {
+        ...args,
+        id: uuidv4(),
+        createdBy: "user",
+        type: "llm" as const,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      functions.push(newFunction);
+      await localForageInstance.setItem(KEY, functions);
+      queryClient.setQueryData<FunctionType[]>(["functions"], functions);
+      queryClient.setQueryData<FunctionType>(
+        ["function", newFunction.id],
+        newFunction
+      );
+      return newFunction;
+    },
+  });
+};
+
+const getFunctions = async () => {
+  const fns = (await localForageInstance.getItem<FunctionType[]>(KEY)) || [];
+  if (fns.length === 0) {
+    await localForageInstance.setItem(KEY, DEFAULT_FUNCTIONS);
+    return DEFAULT_FUNCTIONS;
+  }
+  return fns;
+};
+
 export const useFunctions = () => {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: ["functions"],
     queryFn: async () => {
-      return (await localForageInstance.getItem<FunctionType[]>(KEY)) || [];
+      const functions = await getFunctions();
+      queryClient.setQueryData<FunctionType[]>(["functions"], functions);
+      return functions;
     },
   });
 };
@@ -90,6 +173,36 @@ export const useUpdateFunction = () => {
   });
 };
 
+export const useUpdateLlmFunction = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ["updateLlmFunction"],
+    mutationFn: async (
+      args: UpdateLLMFunctionArgsType & UpdateFunctionArgsType
+    ) => {
+      const functions =
+        (await localForageInstance.getItem<FunctionType[]>(KEY)) || [];
+      const newFunctions = functions.map((func) => {
+        if (func.id === args.id) {
+          const newFunc = {
+            ...func,
+            ...args,
+            updatedAt: new Date().toISOString(),
+          };
+          queryClient.setQueryData<FunctionType>(
+            ["function", args.id],
+            newFunc
+          );
+          return newFunc;
+        }
+        return func;
+      });
+      await localForageInstance.setItem(KEY, newFunctions);
+      queryClient.setQueryData<FunctionType[]>(["functions"], newFunctions);
+    },
+  });
+};
+
 export const useDeleteFunction = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -99,8 +212,24 @@ export const useDeleteFunction = () => {
         (await localForageInstance.getItem<FunctionType[]>(KEY)) || [];
       const newFunctions = functions.filter((func) => func.id !== id);
       await localForageInstance.setItem(KEY, newFunctions);
-      queryClient.resetQueries({ queryKey: ["function", id] });
+      queryClient.removeQueries({ queryKey: ["function", id] });
       queryClient.setQueryData<FunctionType[]>(["functions"], newFunctions);
     },
   });
+};
+
+export const useSearchFunctions = () => {
+  const { data: functions } = useFunctions();
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredFunctions = useCallback(() => {
+    if (!searchTerm.trim() || !functions) return functions;
+    return functions.filter(
+      (func) =>
+        func.functionName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        func.description.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [functions, searchTerm]);
+
+  return { searchTerm, setSearchTerm, filteredFunctions: filteredFunctions() };
 };

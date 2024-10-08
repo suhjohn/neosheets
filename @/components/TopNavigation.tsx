@@ -21,7 +21,7 @@ export const TopNavigation = () => {
         {/** Left */}
         <div className={cn("font-bold", "flex", "space-x-8", "items-center")}>
           <Link className="flex space-x-2 items-center" to="/">
-            <p>ModernSheets</p>
+            <p>neosheets</p>
           </Link>
           <div className={cn("flex", "space-x-2")}>
             <Button variant={"ghost"}>

@@ -1,8 +1,8 @@
 import localForage from "localforage";
 
 export const localForageInstance = localForage.createInstance({
-  name: "LocalForage",
+  name: "NeoSheetsStore",
   version: 1.0,
-  storeName: "LocalForage",
-  driver: [localForage.INDEXEDDB, localForage.LOCALSTORAGE],
+  storeName: "db",
+  driver: [localForage.INDEXEDDB],
 });

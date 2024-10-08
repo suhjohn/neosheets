@@ -52,8 +52,8 @@ export const ClickableTextarea: FC<ClickableTextareaProps> = ({
           className={cn([
             "px-2",
             "text-xs",
-            "text-zinc-500",
-            "dark:text-zinc-400",
+            "text-stone-500",
+            "dark:text-stone-400",
           ])}
         >
           {label}
@@ -73,14 +73,14 @@ export const ClickableTextarea: FC<ClickableTextareaProps> = ({
             "justify-start",
             "text-left",
             "border-transparent",
-            "hover:border-zinc-200",
-            "dark:hover:border-zinc-700",
+            "hover:border-stone-200",
+            "dark:hover:border-stone-700",
             "min-h-8",
             "focus-visible:outline-0",
             "focus-visible:ring-0",
             "focus-visible:border-blue-500",
             "text-sm",
-            isEmpty && ["text-zinc-400", "dark:text-zinc-500"],
+            isEmpty && ["text-stone-400", "dark:text-stone-500"],
             buttonClassName,
           ])}
         >
@@ -133,8 +133,8 @@ export const ClickableTextarea: FC<ClickableTextareaProps> = ({
             "word-wrap",
             "px-2",
             "text-xs",
-            "text-zinc-500",
-            "dark:text-zinc-400",
+            "text-stone-500",
+            "dark:text-stone-400",
           ])}
         >
           {description}

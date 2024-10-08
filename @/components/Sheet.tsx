@@ -1,45 +1,93 @@
-// Sheet.tsx
+// @/components/Sheet.tsx
+import { DEFAULT_ROW_COUNT } from "@/constants";
+import { useUpdateSpreadsheet } from "@/hooks/useSpreadsheetes";
 import { cn } from "@/lib/utils";
-import { type CellData, type CellDisplay } from "@/types/sheet";
+import { initialState } from "@/state/sheetReducer";
+import { SheetStateContext, useDispatch } from "@/store/useSheetStore";
+import { Spreadsheet, type CellDisplay, type CellState } from "@/types/sheet";
+import { useSearchParams } from "@remix-run/react";
+import { PlusIcon, Redo2, SidebarIcon, Undo2 } from "lucide-react";
 import type React from "react";
-import { useCallback, useState } from "react";
-import { TbTextWrapColumn } from "react-icons/tb";
-import { ContextMenu } from "./ContextMenu";
-import { FunctionBindingsModal } from "./FunctionBindingsModal";
-import { SheetProvider, useSheetContext } from "./SheetContext";
+import { useCallback, useContext, useState } from "react";
+import {
+  TbCaretDownFilled,
+  TbDownload,
+  TbTextWrapColumn,
+} from "react-icons/tb";
+import { v4 } from "uuid";
+import { useStore } from "zustand";
+import { ClickableInput } from "./ClickableInput";
+import { ContextMenu, RowContextMenu } from "./ContextMenu";
+import CopySheetDialog from "./CopySheetDialog"; // We'll create this component next
+import { FunctionBindingsDialog } from "./FunctionBindingsDialog";
+import { ResizeRowDialog } from "./ResizeRowDialog";
+import { SheetProvider } from "./SheetContext";
+import { DrawerNavigation } from "./SideNavigation";
+import { Button } from "./ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import { Input } from "./ui/input";
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
 import VirtualizedSheet from "./VirtualizedSheet";
 
 interface SheetProps {
-  initialData?: { value: string; display: CellDisplay }[][];
+  spreadsheetId: string;
+  initialSpreadsheet: Spreadsheet;
   rowCount?: number;
 }
 
-const DEFAULT_CELL_STATE: CellData = {
+const DEFAULT_CELL_STATE: CellState = {
   value: "",
   display: "hide",
 };
 
-const SheetContent: React.FC<SheetProps> = ({ rowCount = 1000 }) => {
-  const { state, dispatch, handleCellUpdate } = useSheetContext();
-  const { cellStates, selectedCellPosition, headerStates } = state;
+const SpreadsheetContent: React.FC<SheetProps> = ({
+  spreadsheetId,
+  rowCount = DEFAULT_ROW_COUNT,
+}) => {
+  const sheetStateStore = useContext(SheetStateContext);
+  if (!sheetStateStore) {
+    throw new Error("SheetStateContext is not provided");
+  }
+  const [queryParams, setQueryParams] = useSearchParams();
+  const sheetId = queryParams.get("sheetId");
+  const state = useStore(sheetStateStore, (state) => state.currentSheetState);
+  const tableRef = useStore(sheetStateStore, (state) => state.tableRef);
+  const spreadsheet = useStore(sheetStateStore, (state) => state.spreadsheet);
+  const setCurrentSheetId = useStore(
+    sheetStateStore,
+    (state) => state.setCurrentSheetId
+  );
+  const setSpreadsheet = useStore(
+    sheetStateStore,
+    (state) => state.setSpreadsheet
+  );
+  const [open, setOpen] = useState(false);
+  const { mutateAsync: updateSpreadsheet } = useUpdateSpreadsheet();
+  const dispatch = useDispatch(spreadsheetId);
+  const {
+    cellStates,
+    selectedCellPosition,
+    selectedCellRange,
+    headerStates,
+    selectedRows,
+  } = state;
   const [contextMenuPosition, setContextMenuPosition] = useState<{
     x: number;
     y: number;
   } | null>(null);
+  const [isResizeDialogOpen, setIsResizeDialogOpen] = useState(false);
+  const [isCopyDialogOpen, setIsCopyDialogOpen] = useState(false);
+  const [sheetToCopy, setSheetToCopy] = useState<string | null>(null);
 
-  const handleContextMenu = useCallback(
-    (event: React.MouseEvent, rowIndex: number, colIndex: number) => {
-      event.preventDefault();
-      dispatch({
-        type: "SET_SELECTED_CELL_POSITION",
-        payload: { row: rowIndex, col: colIndex },
-      });
-      setContextMenuPosition({ x: event.clientX, y: event.clientY });
-    },
-    [dispatch, setContextMenuPosition]
-  );
+  const handleContextMenu = useCallback((event: React.MouseEvent) => {
+    event.preventDefault();
+    setContextMenuPosition({ x: event.clientX, y: event.clientY });
+  }, []);
 
   const closeContextMenu = useCallback(() => {
     setContextMenuPosition(null);
@@ -47,49 +95,66 @@ const SheetContent: React.FC<SheetProps> = ({ rowCount = 1000 }) => {
 
   const setSelectedCellDisplay = useCallback(
     (mode: CellDisplay) => {
-      if (selectedCellPosition) {
+      if (selectedCellRange) {
         dispatch({
-          type: "SET_CELL_STATE",
+          type: "HANDLE_UPDATE_CELL_RANGE",
           payload: {
-            colIndex: selectedCellPosition.col,
-            rowIndex: selectedCellPosition.row,
-            cellData: {
-              ...cellStates[selectedCellPosition.col][selectedCellPosition.row],
-              display: mode,
-            },
+            range: selectedCellRange,
+            display: mode === "wrap" ? "wrap" : "hide",
           },
+        });
+      } else if (selectedCellPosition) {
+        dispatch({
+          type: "HANDLE_UPDATE_CELL",
+          payload: {
+            row: selectedCellPosition.row,
+            col: selectedCellPosition.col,
+            value:
+              cellStates[selectedCellPosition.col][selectedCellPosition.row]
+                .value || "",
+            display: mode === "wrap" ? "wrap" : "hide",
+          },
+        });
+        tableRef.current?.focus({
+          preventScroll: true,
         });
       }
     },
-    [selectedCellPosition, cellStates, dispatch]
+    [selectedCellRange, selectedCellPosition, dispatch, cellStates, tableRef]
   );
+
   const insertRow = useCallback(
     (rowIndex: number) => {
       dispatch({
         type: "INSERT_ROW",
-        payload: rowIndex,
+        payload: {
+          rowIndex
+        },
       });
     },
     [dispatch]
   );
-  const deleteRow = useCallback(
-    (rowIndex: number) => {
+
+  const deleteRows = useCallback(
+    (rowIndexes: number[]) => {
       dispatch({
-        type: "DELETE_ROW",
-        payload: rowIndex,
+        type: "DELETE_ROWS",
+        payload: rowIndexes,
       });
     },
     [dispatch]
   );
+
   const insertColumn = useCallback(
     (colIndex: number) => {
       dispatch({
         type: "INSERT_COLUMN",
-        payload: colIndex,
+        payload: { colIndex },
       });
     },
     [dispatch]
   );
+
   const deleteColumn = useCallback(
     (colIndex: number) => {
       dispatch({
@@ -114,17 +179,142 @@ const SheetContent: React.FC<SheetProps> = ({ rowCount = 1000 }) => {
   const handleFunctionInputKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {
       dispatch({
-        type: "HANDLE_KEYBOARD_EVENT",
+        type: "HANDLE_TABLE_KEYBOARD_EVENT",
         payload: event,
       });
     },
     [dispatch]
   );
 
+  const handleDownloadCSV = useCallback(() => {
+    const { cellStates, rowStates, headerStates } = state;
+
+    // Get all row indices
+    const rowIndices = Object.keys(rowStates).map(Number);
+    let maxRowIndex = 0;
+    for (const col of cellStates) {
+      const colMaxRowIndex = Object.keys(col)
+        .map(Number)
+        .reduce((max, rowIndex) => Math.max(max, rowIndex), 0);
+      maxRowIndex = Math.max(maxRowIndex, colMaxRowIndex);
+    }
+    maxRowIndex = Math.max(maxRowIndex, ...rowIndices);
+
+    // Create header row
+    const headerRow: string = headerStates
+      .map((header) => `"${header.value}"`)
+      .join(",");
+
+    // Create data rows
+    const dataRows: string[] = [];
+    for (let rowIndex = 0; rowIndex <= maxRowIndex; rowIndex++) {
+      const rowData = headerStates.map((_, colIndex) => {
+        const cell = (cellStates[colIndex] &&
+          cellStates[colIndex][rowIndex]) || { value: "" };
+        return `"${cell.value.toString().replace(/"/g, '""')}"`;
+      });
+      dataRows.push(rowData.join(","));
+    }
+
+    // Combine header and data rows
+    const csvContent = [headerRow, ...dataRows].join("\n");
+    // Create a Blob with the CSV content
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    // Create a link element and trigger the download
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "sheet_data.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [state]);
+
+  const handleResizeRow = useCallback(() => {
+    setIsResizeDialogOpen(true);
+  }, []);
+
+  const handleResizeConfirm = useCallback(
+    (resizeType: "specific" | "fit", height: number | null) => {
+      if (selectedRows.length > 0) {
+        dispatch({
+          type: "HANDLE_RESIZE_ROWS",
+          payload: selectedRows.map((row) => ({
+            rowIndex: row,
+            height: resizeType === "fit" ? null : height,
+          })),
+        });
+      }
+      setIsResizeDialogOpen(false);
+    },
+    [dispatch, selectedRows]
+  );
+
+  const handleDeleteSheet = (sheetId: string) => {
+    // Implement deletion logic (ensure you don't delete the last remaining sheet)
+    if (spreadsheet.sheets.length === 1) {
+      alert("Cannot delete the last remaining sheet.");
+      return;
+    }
+    updateSpreadsheet({
+      ...spreadsheet,
+      sheets: spreadsheet.sheets.filter((sheet) => sheet.id !== sheetId),
+    });
+    setSpreadsheet({
+      ...spreadsheet,
+      sheets: spreadsheet.sheets.filter((sheet) => sheet.id !== sheetId),
+    });
+  };
+  const handleAddSheet = () => {
+    const newSheet = {
+      ...initialState,
+      id: v4(),
+      name: "Sheet " + (spreadsheet.sheets.length + 1),
+    };
+    setSpreadsheet({
+      ...spreadsheet,
+      sheets: [...spreadsheet.sheets, newSheet],
+    });
+    updateSpreadsheet({
+      ...spreadsheet,
+      sheets: [...spreadsheet.sheets, newSheet],
+    });
+    setCurrentSheetId(newSheet.id);
+    setQueryParams({ sheetId: newSheet.id });
+  };
+  const handleCopySheet = (sheetId: string) => {
+    setSheetToCopy(sheetId);
+    setIsCopyDialogOpen(true);
+  };
+  const handleSetSpreadsheetName = (name: string) => {
+    updateSpreadsheet({
+      ...spreadsheet,
+      name,
+    });
+    setSpreadsheet({
+      ...spreadsheet,
+      name,
+    });
+  };
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden">
-      <div className="px-4">
-        <div className="flex w-full bg-zinc-100 dark:bg-zinc-900 px-4 py-1 items-center rounded-full">
+    <div className="flex flex-col h-full w-full overflow-hidden flex-1">
+      <DrawerNavigation open={open} onClose={() => setOpen(false)} />
+      <div className="h-12 items-center flex border-b border-b-stone-200 dark:border-b-stone-800">
+        <Button onClick={() => setOpen(true)} variant="icon">
+          <SidebarIcon size={16} />
+        </Button>
+        <ClickableInput
+          value={spreadsheet.name}
+          onBlur={(value) => handleSetSpreadsheetName(value)}
+          rootClassName="min-w-96 h-8"
+          buttonClassName="h-8 w-full border border-transparent hover:border hover:border-stone-300 dark:hover:border-stone-700"
+          inputClassName="h-8 w-full border border-transparent"
+          parse={String}
+        />
+      </div>
+      <div className="p-2">
+        <div className="flex w-full bg-stone-25 dark:bg-stone-950 px-4 items-center rounded-md">
           <ToggleGroup
             type="single"
             value={getSelectedCell().display}
@@ -135,7 +325,26 @@ const SheetContent: React.FC<SheetProps> = ({ rowCount = 1000 }) => {
               <TbTextWrapColumn />
             </ToggleGroupItem>
           </ToggleGroup>
-          <FunctionBindingsModal sheetId="1" />
+          <>
+            <FunctionBindingsDialog sheetId={spreadsheetId} />
+          </>
+          <Button variant="ghost" size="sm" onClick={handleDownloadCSV}>
+            <TbDownload size={16} />
+          </Button>
+          <Button variant="ghost" size="sm" onClick={
+            () => dispatch({
+              type: "UNDO",
+            })
+          }>
+            <Undo2 size={16} />
+          </Button>
+          <Button variant="ghost" size="sm" onClick={
+            () => dispatch({
+              type: "REDO",
+            })
+          }>
+            <Redo2 size={16} />
+          </Button>
         </div>
       </div>
       <div className="px-2 flex gap-2 items-center">
@@ -156,29 +365,86 @@ const SheetContent: React.FC<SheetProps> = ({ rowCount = 1000 }) => {
           onKeyDown={handleFunctionInputKeyDown}
           onChange={(e) => {
             if (selectedCellPosition) {
-              handleCellUpdate(
-                selectedCellPosition.row,
-                selectedCellPosition.col,
-                e.target.value,
-                cellStates[selectedCellPosition.col][selectedCellPosition.row]
-                  .display
-              );
+              dispatch({
+                type: "HANDLE_UPDATE_CELL",
+                payload: {
+                  row: selectedCellPosition.row,
+                  col: selectedCellPosition.col,
+                  value: e.target.value,
+                  display:
+                    cellStates[selectedCellPosition.col][
+                      selectedCellPosition.row
+                    ].display,
+                },
+              });
             }
           }}
         />
       </div>
       <VirtualizedSheet
+        spreadsheetId={spreadsheetId}
         rowCount={rowCount}
-        rowHeight={24}
         onContextMenu={handleContextMenu}
       />
-      {contextMenuPosition && (
+      <div className="flex items-center border-t border-t-stone-200 dark:border-t-stone-800">
+        <div className={cn("w-[46px]")} />
+        {spreadsheet.sheets.map((sheet, index) => (
+          <div
+            key={sheet.id}
+            className={cn(
+              "flex items-center",
+              {
+                "bg-stone-200 dark:bg-stone-800":
+                  sheetId === sheet.id || (index === 0 && !sheetId),
+              },
+              "hover:bg-stone-200 dark:hover:bg-stone-800"
+            )}
+          >
+            <Button
+              onClick={() => {
+                setQueryParams({ sheetId: sheet.id });
+                setCurrentSheetId(sheet.id);
+              }}
+              variant="unstyled"
+              className={cn("flex h-8 items-center px-4 rounded-none", {
+                "bg-stone-200 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-800":
+                  sheetId === sheet.id || (index === 0 && !sheetId),
+              })}
+            >
+              {sheet.name}
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="icon" aria-label="More options">
+                  <TbCaretDownFilled size={16} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="z-[1000]">
+                <DropdownMenuItem onSelect={() => handleCopySheet(sheet.id)}>
+                  Copy
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleDeleteSheet(sheet.id)}>
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        ))}
+        <Button
+          variant="ghost"
+          onClick={handleAddSheet}
+          className="flex items-center rounded-none h-full"
+        >
+          <PlusIcon size={16} />
+        </Button>
+      </div>
+      {contextMenuPosition && selectedCellPosition && (
         <ContextMenu
           position={contextMenuPosition}
           disabledMenuItems={
             selectedCellPosition !== null &&
-            (headerStates[selectedCellPosition.col].type === "prompt" ||
-              headerStates[selectedCellPosition.col].type === "function")
+              (headerStates[selectedCellPosition.col].type === "prompt" ||
+                headerStates[selectedCellPosition.col].type === "function")
               ? []
               : ["runCell"]
           }
@@ -196,13 +462,49 @@ const SheetContent: React.FC<SheetProps> = ({ rowCount = 1000 }) => {
             selectedCellPosition && insertColumn(selectedCellPosition.col + 1)
           }
           onWrapText={() => setSelectedCellDisplay("wrap")}
-          onRunCell={() => {}}
+          onRunCell={() => { }}
           onDeleteRow={() =>
-            selectedCellPosition && deleteRow(selectedCellPosition.row)
+            selectedCellPosition && deleteRows([selectedCellPosition.row])
           }
           onDeleteColumn={() =>
             selectedCellPosition && deleteColumn(selectedCellPosition.col)
           }
+        />
+      )}
+      {contextMenuPosition && selectedRows.length > 0 && (
+        <RowContextMenu
+          position={contextMenuPosition}
+          numRows={selectedRows.length}
+          onClose={closeContextMenu}
+          onInsertRow={() => {
+            for (let i = 0; i < selectedRows.length; i++) {
+              insertRow(selectedRows[0]);
+            }
+          }}
+          onInsertRowBelow={() => {
+            for (let i = 0; i < selectedRows.length; i++) {
+              insertRow(selectedRows[0] + i + 1);
+            }
+          }}
+          onDeleteRow={() => {
+            deleteRows(selectedRows);
+          }}
+          onClearRow={() => { }}
+          onResizeRow={handleResizeRow}
+        />
+      )}
+      <ResizeRowDialog
+        isOpen={isResizeDialogOpen}
+        onClose={() => setIsResizeDialogOpen(false)}
+        onConfirm={handleResizeConfirm}
+        selectedRows={selectedRows}
+      />
+      {/* Copy Sheet Dialog */}
+      {isCopyDialogOpen && sheetToCopy && (
+        <CopySheetDialog
+          isOpen={isCopyDialogOpen}
+          onClose={() => setIsCopyDialogOpen(false)}
+          sheetId={sheetToCopy}
         />
       )}
     </div>
@@ -210,8 +512,8 @@ const SheetContent: React.FC<SheetProps> = ({ rowCount = 1000 }) => {
 };
 
 const Sheet: React.FC<SheetProps> = (props) => (
-  <SheetProvider>
-    <SheetContent {...props} />
+  <SheetProvider initialSpreadsheet={props.initialSpreadsheet}>
+    <SpreadsheetContent {...props} />
   </SheetProvider>
 );
 

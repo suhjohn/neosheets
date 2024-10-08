@@ -1,7 +1,13 @@
 import { cn } from "@/lib/utils";
-import { ClassValue } from "clsx";
-import { FC, HTMLInputTypeAttribute, useEffect, useState } from "react";
+import { type ClassValue } from "clsx";
+import {
+  type FC,
+  type HTMLInputTypeAttribute,
+  useEffect,
+  useState,
+} from "react";
 import { ZodError } from "zod";
+import { Button } from "./ui/button";
 
 export type ClickableInputProps = {
   value: string;
@@ -15,6 +21,7 @@ export type ClickableInputProps = {
   rootClassName?: ClassValue[] | ClassValue;
   inputClassName?: ClassValue[] | ClassValue;
   buttonClassName?: ClassValue[] | ClassValue;
+  disabled?: boolean;
 };
 
 export const ClickableInput: FC<ClickableInputProps> = ({
@@ -29,6 +36,7 @@ export const ClickableInput: FC<ClickableInputProps> = ({
   rootClassName,
   inputClassName,
   buttonClassName,
+  disabled = false,
 }) => {
   const [isClicked, setIsClicked] = useState<boolean>(false);
   const [inputText, setInputText] = useState<string>(value);
@@ -37,24 +45,30 @@ export const ClickableInput: FC<ClickableInputProps> = ({
   }, [value]);
   const [error, setError] = useState<string | undefined>(undefined);
   const handleFinish = () => {
+    if (error !== undefined) {
+      return;
+    }
     setIsClicked(false);
     onBlur?.(inputText);
   };
   const isEmpty = inputText === "";
   return (
-    <div className={cn(["flex", "flex-col", rootClassName])}>
-      <label
-        className={cn([
-          "px-2",
-          "text-xs",
-          "text-zinc-500",
-          "dark:text-zinc-400",
-        ])}
-      >
-        {label}
-      </label>
+    <div className={cn(["flex", "flex-col", "gap-1", rootClassName])}>
+      {label !== undefined && (
+        <label
+          className={cn([
+            "px-2",
+            "text-xs",
+            "text-stone-500",
+            "dark:text-stone-400",
+          ])}
+        >
+          {label}
+        </label>
+      )}
       {!isClicked && (
-        <button
+        <Button
+          variant={"unstyled"}
           onClick={() => {
             setIsClicked(true);
             onClick?.();
@@ -63,23 +77,20 @@ export const ClickableInput: FC<ClickableInputProps> = ({
             "px-2",
             "py-1",
             "rounded-md",
-            "border-2",
             "justify-start",
             `text-left`,
-            "border-transparent",
-            "hover:border-zinc-200",
-            "dark:hover:border-zinc-700",
+            "focus:border-none",
             "min-h-8",
             "focus-visible:outline-0",
             "focus-visible:ring-0",
-            "focus-visible:border-blue-500",
+            "focus-visible:border-none",
             "text-sm",
-            isEmpty && ["text-zinc-400", "dark:text-zinc-500"],
+            isEmpty && ["text-stone-400", "dark:text-stone-500"],
             buttonClassName,
           ])}
         >
           <p>{isEmpty ? placeholder : inputText}</p>
-        </button>
+        </Button>
       )}
       {isClicked && (
         <input
@@ -88,18 +99,19 @@ export const ClickableInput: FC<ClickableInputProps> = ({
             "px-2",
             "py-1",
             "min-h-8",
-            "border-2",
+            "border",
             "ring-0",
             "outline-0",
             "focus-visible:outline-0",
             "focus-visible:ring-0",
-            "focus-visible:border-blue-500",
+            "focus-visible:border-none",
             "text-sm",
             "bg-transparent",
             inputClassName,
           ])}
           autoFocus
           type={type}
+          disabled={disabled}
           onBlur={() => handleFinish()}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === "Escape") {
@@ -115,6 +127,8 @@ export const ClickableInput: FC<ClickableInputProps> = ({
               setInputText(event.target.value);
               if (e instanceof ZodError && e.errors.length > 0) {
                 setError(e.errors[0]?.message);
+              } else if (e instanceof Error) {
+                setError(e.message);
               }
             }
           }}
@@ -126,8 +140,8 @@ export const ClickableInput: FC<ClickableInputProps> = ({
             "word-wrap",
             "px-2",
             "text-xs",
-            "text-zinc-500",
-            "dark:text-zinc-400",
+            "text-stone-500",
+            "dark:text-stone-400",
           ])}
         >
           {description}

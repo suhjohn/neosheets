@@ -1,6 +1,10 @@
 // eval.ts
-import { ASTNode } from "@/types/ast";
-import { CellAddress, cellAddressToString, ColumnData } from "@/types/sheet";
+import { type ASTNode, type FunctionBindingsType } from "@/types/ast";
+import {
+  cellAddressToString,
+  type CellAddress,
+  type CellStates,
+} from "@/types/sheet";
 import ts from "typescript";
 import { tokenize } from "./lexer";
 import { parse } from "./parser";
@@ -15,15 +19,18 @@ export class CircularDependencyError extends Error {
 
 function evaluateAst(
   ast: ASTNode,
-  data: ColumnData[],
+  data: CellStates[],
   currentCell: CellAddress,
   evaluationChain: Set<string>,
-  functionBindings: functionBindingsType
-): any {
+  functionBindings: FunctionBindingsType
+): string | number | string[] | number[] | (string | number)[] | object {
   switch (ast.type) {
     case "Number":
       return ast.value;
-    case "CellReference":
+    case "String":
+      return ast.value;
+    case "CellReference": {
+      // eslint-disable-next-line no-case-declarations
       const refAddress = cellAddressToString({
         col: ast.columnIndex,
         row: ast.rowIndex,
@@ -45,7 +52,8 @@ function evaluateAst(
         });
       }
       return cellValue !== undefined ? cellValue : 0;
-    case "Range":
+    }
+    case "Range": {
       const startCell = { col: ast.start.columnIndex, row: ast.start.rowIndex };
       const endCell = { col: ast.end.columnIndex, row: ast.end.rowIndex };
       const values = [];
@@ -55,21 +63,22 @@ function evaluateAst(
         }
       }
       return values;
-    case "BinaryOperation":
+    }
+    case "BinaryOperation": {
       const left = evaluateAst(
         ast.left,
         data,
         currentCell,
         evaluationChain,
         functionBindings
-      );
+      ) as number;
       const right = evaluateAst(
         ast.right,
         data,
         currentCell,
         evaluationChain,
         functionBindings
-      );
+      ) as number;
       switch (ast.operator) {
         case "+":
           return left + right;
@@ -82,28 +91,47 @@ function evaluateAst(
         default:
           throw new Error(`Unknown operator: ${ast.operator}`);
       }
-    case "Function":
+    }
+    case "Function": {
       const args = ast.arguments.map((arg) =>
         evaluateAst(arg, data, currentCell, evaluationChain, functionBindings)
       );
       const functionObj = functionBindings[ast.name.toUpperCase()];
       if (!functionObj) {
-        throw new Error("Function SUM not found");
+        throw new Error(`Function ${ast.name} not found`);
       }
       const { functionBody } = functionObj;
       const transpiledCode = ts.transpile(`${functionBody}`);
-      return eval(`${transpiledCode};\nrun(${args})`);
+
+      // Prepare the argument string for eval
+      let argString: string;
+      if (args.length === 1 && typeof args[0] === "object") {
+        // If the argument is an object, stringify it
+        argString = JSON.stringify(args[0]);
+      } else {
+        // For positional arguments, join them with commas
+        argString = args.join(", ");
+      }
+      // Adjust the function call accordingly
+      return eval(`${transpiledCode};\nrun(${argString});`);
+    }
+    case "ObjectLiteral": {
+      const obj: { [key: string]: unknown } = {};
+      for (const { key, value } of ast.properties) {
+        obj[key] = evaluateAst(
+          value,
+          data,
+          currentCell,
+          evaluationChain,
+          functionBindings
+        ) as string | number | string[] | number[] | (string | number)[];
+      }
+      return obj;
+    }
     default:
-      throw new Error(`Unknown AST node type: ${(ast as any).type}`);
+      throw new Error(`Unknown AST node type: ${JSON.stringify(ast)}`);
   }
 }
-
-export type functionBindingsType = {
-  [functionName: string]: {
-    id: string;
-    functionBody: string;
-  };
-};
 
 export function evaluateFormula({
   formula,
@@ -113,11 +141,11 @@ export function evaluateFormula({
   evaluationChain = new Set<string>(),
 }: {
   formula: string;
-  data: ColumnData[];
+  data: CellStates[];
   currentCell: CellAddress;
-  functionBindings: functionBindingsType;
+  functionBindings: FunctionBindingsType;
   evaluationChain?: Set<string>;
-}): any {
+}): string | number | string[] | number[] | (string | number)[] | object {
   if (!formula.startsWith("=")) return formula;
   const currentAddress = cellAddressToString(currentCell);
   if (evaluationChain.has(currentAddress)) {
@@ -126,17 +154,28 @@ export function evaluateFormula({
     );
   }
   evaluationChain.add(currentAddress);
-  const tokens = tokenize(formula.slice(1));
+  const tokens = tokenize({
+    input: formula.slice(1),
+    functionBindings,
+  });
   const ast = parse(tokens);
   return evaluateAst(ast, data, currentCell, evaluationChain, functionBindings);
 }
 
-export function getCellDependencies(formula: string): Set<string> {
+export function getCellDependencies({
+  formula,
+  functionBindings,
+}: {
+  formula: string;
+  functionBindings: FunctionBindingsType;
+}): Set<string> {
   if (!formula.startsWith("=")) return new Set();
-  const tokens = tokenize(formula.slice(1));
+  const tokens = tokenize({
+    input: formula.slice(1),
+    functionBindings,
+  });
   const ast = parse(tokens);
   const dependencies = new Set<string>();
-
   function traverse(node: ASTNode) {
     if (node.type === "CellReference") {
       dependencies.add(

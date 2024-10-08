@@ -24,20 +24,23 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-blue-500 hover:bg-blue-500/90 aria-selected:bg-blue-500/90",
+          "bg-blue-500 hover:bg-blue-500/90 aria-selected:bg-blue-500/90 text-white",
         destructive:
           "bg-red-500 text-destructive-foreground hover:bg-red-500/90",
         outline:
-          "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+          "border hover:bg-stone-100 dark:hover:bg-stone-900 dark:border-stone-800 border-stone-200",
         secondary:
-          "bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700",
+          "bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-700 border border-stone-200 dark:border-stone-700",
         ghost:
-          "hover:bg-zinc-200 hover:dark:bg-zinc-800 text-zinc-950 dark:text-zinc-50",
+          "hover:bg-stone-100 hover:dark:bg-stone-900",
+        selected: "bg-stone-100 dark:bg-stone-900 text-stone-900 dark:text-stone-50",
+        icon: "text-stone-500 hover:text-stone-800 dark:text-stone-500 dark:hover:text-stone-200",
+        destructiveIcon: "text-red-500 hover:text-red-800 dark:text-red-500 dark:hover:text-red-200",
         link: "text-blue-500 underline-offset-4 hover:underline",
         unstyled: "",
       },
       size: {
-        default: "h-7 min-w-7 px-2 flex-shrink-0",
+        default: "h-7 min-w-7 px-3 flex-shrink-0",
         sm: "h-8 rounded-md min-w-8 px-2",
         lg: "h-10 rounded-md min-w-10 px-2",
         icon: "h-8 w-10",
@@ -52,7 +55,7 @@ const buttonVariants = cva(
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+  VariantProps<typeof buttonVariants> {
   asChild?: boolean;
 }
 

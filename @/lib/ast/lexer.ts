@@ -1,7 +1,13 @@
 // lexer.ts
-import { Token } from "@/types/ast";
+import { type FunctionBindingsType, type Token } from "@/types/ast";
 
-export function tokenize(input: string): Token[] {
+export function tokenize({
+  input,
+  functionBindings,
+}: {
+  input: string;
+  functionBindings: FunctionBindingsType;
+}): Token[] {
   const tokens: Token[] = [];
   let current = 0;
 
@@ -15,9 +21,9 @@ export function tokenize(input: string): Token[] {
 
     if (/\d/.test(char)) {
       let value = "";
-      while (current < input.length && /\d/.test(char)) {
-        value += char;
-        char = input[++current];
+      while (current < input.length && /\d/.test(input[current])) {
+        value += input[current];
+        current++;
       }
       tokens.push({ type: "NUMBER", value });
       continue;
@@ -25,14 +31,22 @@ export function tokenize(input: string): Token[] {
 
     if (/[A-Z]/i.test(char)) {
       let value = "";
-      while (current < input.length && /[A-Z0-9]/i.test(char)) {
-        value += char;
-        char = input[++current];
+      while (current < input.length && /[A-Z0-9]/i.test(input[current])) {
+        value += input[current];
+        current++;
       }
-      if (value.toUpperCase() === "SUM") {
+
+      // Check if it's a FUNCTION
+      if (functionBindings[value.toUpperCase()]) {
         tokens.push({ type: "FUNCTION", value });
-      } else {
+      }
+      // Check if it's a valid CELL_REF (e.g., A1, B2)
+      else if (/^[A-Z]+[0-9]+$/i.test(value)) {
         tokens.push({ type: "CELL_REF", value });
+      }
+      // Otherwise, it's a general IDENTIFIER
+      else {
+        tokens.push({ type: "IDENTIFIER", value });
       }
       continue;
     }
@@ -64,6 +78,39 @@ export function tokenize(input: string): Token[] {
     if (char === ":") {
       tokens.push({ type: "COLON", value: ":" });
       current++;
+      continue;
+    }
+
+    if (char === "{") {
+      tokens.push({ type: "LBRACE", value: "{" });
+      current++;
+      continue;
+    }
+
+    if (char === "}") {
+      tokens.push({ type: "RBRACE", value: "}" });
+      current++;
+      continue;
+    }
+
+    if (char === '"') {
+      let value = "";
+      current++; // Skip the opening quote
+      char = input[current];
+
+      while (current < input.length && char !== '"') {
+        value += char;
+        current++;
+        char = input[current];
+      }
+
+      if (char === '"') {
+        current++; // Skip the closing quote
+      } else {
+        throw new Error("Unterminated string literal");
+      }
+
+      tokens.push({ type: "STRING", value });
       continue;
     }
 

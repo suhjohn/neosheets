@@ -1,0 +1,388 @@
+openapi: 3.0.0
+info:
+  title: OpenRouter API
+  version: 1.0.0
+  description: API for accessing AI language models through OpenRouter
+
+servers:
+  - url: https://openrouter.ai/api/v1
+
+paths:
+  /chat/completions:
+    post:
+      summary: Create a chat completion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatCompletionRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatCompletionResponse'
+      
+  /generation:
+    get:
+      summary: Get generation stats
+      parameters:
+        - in: query
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The generation ID
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerationStats'
+
+components:
+  schemas:
+    ChatCompletionRequest:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        prompt:
+          type: string
+        model:
+          type: string
+        response_format:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: [json_object]
+        stop:
+          oneOf:
+            - type: string  
+            - type: array
+              items:
+                type: string
+        stream:
+          type: boolean
+        max_tokens:
+          type: integer
+        temperature:
+          type: number
+        top_p:
+          type: number  
+        top_k:
+          type: integer
+        frequency_penalty:
+          type: number
+        presence_penalty:
+          type: number
+        repetition_penalty:
+          type: number
+        seed:
+          type: integer
+        tools:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tool'
+        tool_choice:
+          $ref: '#/components/schemas/ToolChoice'
+        logit_bias:
+          type: object
+          additionalProperties:
+            type: number
+        transforms:
+          type: array
+          items:
+            type: string
+        models:
+          type: array
+          items:
+            type: string
+        route:
+          type: string
+          enum: [fallback]
+        provider:
+          $ref: '#/components/schemas/ProviderPreferences'
+          
+    Message:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum: [user, assistant, system, tool]
+        content:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                $ref: '#/components/schemas/ContentPart'
+        name:
+          type: string
+        tool_call_id:
+          type: string
+          
+    ContentPart:
+      oneOf:
+        - $ref: '#/components/schemas/TextContent'
+        - $ref: '#/components/schemas/ImageContent'
+        
+    TextContent:
+      type: object
+      required:
+        - type
+        - text
+      properties:
+        type:
+          type: string
+          enum: [text]
+        text:
+          type: string
+          
+    ImageContent:  
+      type: object
+      required:
+        - type
+        - image_url
+      properties:
+        type:
+          type: string
+          enum: [image_url]
+        image_url:
+          type: object
+          required:
+            - url
+          properties:
+            url:
+              type: string
+            detail:
+              type: string
+              
+    Tool:
+      type: object
+      required:
+        - type
+        - function
+      properties:
+        type:
+          type: string
+          enum: [function]
+        function:
+          $ref: '#/components/schemas/FunctionDescription'
+          
+    FunctionDescription:
+      type: object
+      required:
+        - name
+        - parameters
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        parameters:
+          type: object
+          
+    ToolChoice:
+      oneOf:
+        - type: string
+          enum: [none, auto]
+        - type: object
+          required:
+            - type
+            - function
+          properties:
+            type:
+              type: string
+              enum: [function]
+            function:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  
+    ProviderPreferences:
+      type: object
+      # Properties not specified in docs
+      
+    ChatCompletionResponse:
+      type: object
+      required:
+        - id
+        - choices
+        - created
+        - model
+        - object
+      properties:
+        id:
+          type: string
+        choices:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/NonStreamingChoice'
+              - $ref: '#/components/schemas/StreamingChoice'
+              - $ref: '#/components/schemas/NonChatChoice'
+        created:
+          type: integer
+        model:
+          type: string
+        object:
+          type: string
+          enum: [chat.completion, chat.completion.chunk]
+        system_fingerprint:
+          type: string
+        usage:
+          $ref: '#/components/schemas/ResponseUsage'
+          
+    NonStreamingChoice:
+      type: object
+      required:
+        - finish_reason
+        - message
+      properties:
+        finish_reason:
+          type: string
+        message:
+          $ref: '#/components/schemas/AssistantMessage'
+        error:
+          $ref: '#/components/schemas/Error'
+          
+    StreamingChoice:
+      type: object
+      required:
+        - finish_reason
+        - delta
+      properties:
+        finish_reason:
+          type: string  
+        delta:
+          $ref: '#/components/schemas/AssistantMessage'
+        error:
+          $ref: '#/components/schemas/Error'
+          
+    NonChatChoice:
+      type: object
+      required:
+        - finish_reason
+        - text
+      properties:
+        finish_reason:
+          type: string
+        text:
+          type: string
+        error:
+          $ref: '#/components/schemas/Error'
+          
+    AssistantMessage:
+      type: object
+      required:
+        - content
+        - role
+      properties:
+        content:
+          type: string
+        role:
+          type: string
+        tool_calls:
+          type: array
+          items:
+            $ref: '#/components/schemas/ToolCall'
+        function_call:
+          $ref: '#/components/schemas/FunctionCall'
+          
+    ToolCall:
+      type: object
+      required:
+        - id
+        - type
+        - function
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [function]
+        function:
+          $ref: '#/components/schemas/FunctionCall'
+          
+    FunctionCall:
+      type: object
+      required:
+        - name
+        - arguments
+      properties:
+        name:
+          type: string
+        arguments:
+          type: string
+          
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+          
+    ResponseUsage:
+      type: object
+      required:
+        - prompt_tokens
+        - completion_tokens
+        - total_tokens
+      properties:
+        prompt_tokens:
+          type: integer
+        completion_tokens:
+          type: integer
+        total_tokens:
+          type: integer
+          
+    GenerationStats:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            model:
+              type: string
+            streamed:
+              type: boolean
+            generation_time:
+              type: integer
+            created_at:
+              type: string
+            tokens_prompt:
+              type: integer
+            tokens_completion:
+              type: integer
+            native_tokens_prompt:
+              type: integer  
+            native_tokens_completion:
+              type: integer
+            num_media_prompt:
+              type: integer
+              nullable: true
+            num_media_completion:
+              type: integer
+              nullable: true
+            origin:
+              type: string
+            total_cost:
+              type: number

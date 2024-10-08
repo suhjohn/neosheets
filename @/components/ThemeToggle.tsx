@@ -1,5 +1,5 @@
 import { Moon, Sun } from "lucide-react";
-import { Theme, useTheme } from "remix-themes";
+import { type Theme, useTheme } from "remix-themes";
 import {
   Select,
   SelectContent,
@@ -7,6 +7,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 
 export function ThemeToggle() {
   const [theme, setTheme] = useTheme();
@@ -31,11 +37,20 @@ export function ThemeToggle() {
         setTheme(value as Theme);
       }}
     >
-      <SelectTrigger className="w-auto">
-        <SelectValue>
-          {options.find((option) => option.value === currentTheme)?.icon}
-        </SelectValue>
-      </SelectTrigger>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger>
+            <SelectTrigger className="w-auto" showChevron={false}>
+              <SelectValue>
+                {options.find((option) => option.value === currentTheme)?.icon}
+              </SelectValue>
+            </SelectTrigger>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="text-xs">Change dark mode</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <SelectContent>
         {options.map((themeOption) => (
           <SelectItem key={themeOption.value} value={themeOption.value}>

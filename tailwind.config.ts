@@ -1,13 +1,29 @@
 import type { Config } from "tailwindcss";
 
 export default {
-  darkMode: ["selector"], // or 'media' if you prefer
+  darkMode: ["class"],
   content: [
     "./app/**/{**,.client,.server}/**/*.{js,jsx,ts,tsx}",
     "./@/**/*.{js,jsx,ts,tsx}",
   ],
   prefix: "",
   theme: {
+    fontSize: {
+      xs: "0.75rem",
+      xsm: "0.8125rem",
+      sm: "0.875rem",
+      base: "1rem",
+      lg: "1.125rem",
+      xl: "1.25rem",
+      "2xl": "1.5rem",
+      "3xl": "1.875rem",
+      "4xl": "2.25rem",
+      "5xl": "3rem",
+      "6xl": "4rem",
+      "7xl": "5rem",
+      "8xl": "6rem",
+      "9xl": "8rem",
+    },
     fontFamily: {
       sans: ["Inter", "sans-serif"],
       mono: ["JetBrains Mono", "monospace"],
@@ -56,6 +72,22 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        stone: {
+          "25": "#fcfcfc",
+          "50": "#f6f6f6",
+          "100": "#f5f5f4",
+          "200": "#e7e5e4",
+          "300": "#d6d3d1",
+          "350": "#cdc9c6",
+          "400": "#a8a29e",
+          "500": "#78716c",
+          "600": "#57534e",
+          "700": "#44403c",
+          "800": "#292524",
+          "850": "#231F1E",
+          "900": "#1c1917",
+          "950": "#110f0e",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -64,12 +96,20 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: { height: "0" },
-          to: { height: "var(--radix-accordion-content-height)" },
+          from: {
+            height: "0",
+          },
+          to: {
+            height: "var(--radix-accordion-content-height)",
+          },
         },
         "accordion-up": {
-          from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: "0" },
+          from: {
+            height: "var(--radix-accordion-content-height)",
+          },
+          to: {
+            height: "0",
+          },
         },
       },
       animation: {

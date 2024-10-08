@@ -17,7 +17,7 @@ const ToggleGroupContext = React.createContext<
 const ToggleGroup = React.forwardRef<
   React.ElementRef<typeof ToggleGroupPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Root> &
-    VariantProps<typeof toggleVariants>
+  VariantProps<typeof toggleVariants>
 >(({ className, variant, size, children, ...props }, ref) => (
   <ToggleGroupPrimitive.Root
     ref={ref}
@@ -35,7 +35,7 @@ ToggleGroup.displayName = ToggleGroupPrimitive.Root.displayName;
 const ToggleGroupItem = React.forwardRef<
   React.ElementRef<typeof ToggleGroupPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Item> &
-    VariantProps<typeof toggleVariants>
+  VariantProps<typeof toggleVariants>
 >(({ className, children, variant, size, ...props }, ref) => {
   const context = React.useContext(ToggleGroupContext);
 
@@ -48,8 +48,9 @@ const ToggleGroupItem = React.forwardRef<
           size: context.size || size,
         }),
         "flex items-center justify-center",
-        "hover:bg-zinc-200 hover:dark:bg-zinc-800 text-zinc-950 dark:text-zinc-50",
-        "hover:text-zinc-950 dark:hover:text-zinc-50",
+        "hover:bg-stone-100 hover:dark:bg-stone-800 text-stone-950 dark:text-stone-50",
+        "hover:text-stone-950 dark:hover:text-stone-50",
+        `data-[state=on]:bg-stone-200 dark:data-[state=on]:bg-stone-700`,
         className
       )}
       {...props}

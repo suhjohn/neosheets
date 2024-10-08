@@ -1,13 +1,15 @@
 "use client";
 import { cn } from "@/lib/utils";
 import { javascript } from "@codemirror/lang-javascript";
+import { useNavigate } from "@remix-run/react";
 import { vscodeDark } from "@uiw/codemirror-theme-vscode";
 import { xcodeLight } from "@uiw/codemirror-theme-xcode";
 import CodeMirror, { EditorView } from "@uiw/react-codemirror";
 import { useState } from "react";
+import { useTheme } from "remix-themes";
 import { z } from "zod";
 import {
-  CreateFunctionArgs,
+  CreateBaseFunctionArgs,
   useCreateFunction,
   useFunctions,
 } from "../hooks/useFunction";
@@ -15,8 +17,6 @@ import { LabeledInput } from "./LabeledInput";
 import { TopNavigation } from "./TopNavigation";
 import { Button } from "./ui/button";
 import { useToast } from "./ui/use-toast";
-import { useTheme } from "remix-themes";
-import { useNavigate } from "@remix-run/react";
 
 export default function NewFunctionPage() {
   const { toast } = useToast();
@@ -27,12 +27,13 @@ export default function NewFunctionPage() {
   });
   const { refetch } = useFunctions();
   const { mutateAsync } = useCreateFunction();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [resolvedTheme, _] = useTheme();
   const navigate = useNavigate();
 
   const handleCreateFunction = async () => {
     try {
-      CreateFunctionArgs.parse(functionState);
+      CreateBaseFunctionArgs.parse(functionState);
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
@@ -78,7 +79,10 @@ export default function NewFunctionPage() {
               <p className={cn(["text-sm"])}>Body</p>
               <CodeMirror
                 theme={resolvedTheme === "dark" ? vscodeDark : xcodeLight}
-                extensions={[javascript(), EditorView.lineWrapping]}
+                extensions={[
+                  javascript({ typescript: true }),
+                  EditorView.lineWrapping,
+                ]}
                 value={"function run() {\n  return '';\n}"}
                 onChange={(value) => {
                   setFunctionState({ ...functionState, functionBody: value });

@@ -69,14 +69,6 @@ module.exports = {
         "plugin:import/typescript",
       ],
       rules: {
-        "@typescript-eslint/consistent-type-imports": [
-          "error",
-          {
-            prefer: "type-imports",
-            disallowTypeAnnotations: true,
-            fixStyle: "inline-type-imports",
-          },
-        ],
         "import/no-duplicates": "warn",
       },
     },

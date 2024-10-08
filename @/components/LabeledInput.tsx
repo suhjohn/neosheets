@@ -54,8 +54,8 @@ export const LabeledInput: FC<LabeledInputProps> = ({
             "word-wrap",
             "px-2",
             "text-xs",
-            "text-zinc-500",
-            "dark:text-zinc-400",
+            "text-stone-500",
+            "dark:text-stone-400",
           ])}
         >
           {description}

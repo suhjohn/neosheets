@@ -1,6 +1,22 @@
 import { cn } from "@/lib/utils";
-import "@fontsource/inter";
-import "@fontsource/open-sans";
+import "@fontsource/inter/100-italic.css";
+import "@fontsource/inter/100.css";
+import "@fontsource/inter/200-italic.css";
+import "@fontsource/inter/200.css";
+import "@fontsource/inter/300-italic.css";
+import "@fontsource/inter/300.css";
+import "@fontsource/inter/400-italic.css";
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/500-italic.css";
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/600-italic.css";
+import "@fontsource/inter/600.css";
+import "@fontsource/inter/700-italic.css";
+import "@fontsource/inter/700.css";
+import "@fontsource/inter/800-italic.css";
+import "@fontsource/inter/800.css";
+import "@fontsource/inter/900-italic.css";
+import "@fontsource/inter/900.css";
 import { cssBundleHref } from "@remix-run/css-bundle";
 import { type LinksFunction, type LoaderFunctionArgs } from "@remix-run/node";
 import {
@@ -13,12 +29,8 @@ import {
 } from "@remix-run/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
-import {
-  PreventFlashOnWrongTheme,
-  ThemeProvider,
-  useTheme,
-} from "remix-themes";
-import stylesheet from "~/tailwind.css?url";
+import { ThemeProvider, useTheme } from "remix-themes";
+import stylesheet from "~/globals.css?url";
 import { themeSessionResolver } from "./sessions.server";
 
 export const links: LinksFunction = () => [
@@ -36,7 +48,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export default function AppWithProviders() {
   const data = useLoaderData<typeof loader>();
-  console.log(data);
   return (
     <ThemeProvider specifiedTheme={data.theme} themeAction="/action/set-theme">
       <App />
@@ -59,15 +70,14 @@ function App() {
   );
   const [theme] = useTheme();
   return (
-    <html lang="en" className={cn(theme!, "dark:bg-zinc-950", "bg-white")}>
+    <html lang="en" className={cn(theme)}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
-        <PreventFlashOnWrongTheme ssrTheme={Boolean(theme)} />
         <Links />
       </head>
-      <body>
+      <body className="overscroll-none">
         <QueryClientProvider client={queryClient}>
           <Outlet />
         </QueryClientProvider>
