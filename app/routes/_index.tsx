@@ -35,16 +35,16 @@ export default function LandingPage() {
                 </h1>
                 <p className="mx-auto max-w-screen-md text-md lg:text-lg font-[400]">
                   Write LLM prompts and Typescript functions and use them as
-                  formulas. Call REST APIs without having to write
-                  clunky App Scripts.
+                  formulas. Call REST APIs without having to write clunky App
+                  Scripts.
                 </p>
               </div>
               <div className="space-x-4">
-                <Button className="py-3 h-auto px-4 text-sm">
+                <Button className="h-auto text-sm px-0">
                   <Link
                     to="/spreadsheet"
                     className={cn(
-                      "w-full flex space-x-2 items-center",
+                      "w-full h-full flex space-x-2 items-center px-4 py-3",
                       "text-left"
                     )}
                   >
