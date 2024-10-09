@@ -1,4 +1,5 @@
 // @/components/Sheet.tsx
+import { useToast } from "@/components/ui/use-toast";
 import { DEFAULT_ROW_COUNT } from "@/constants";
 import { useUpdateSpreadsheet } from "@/hooks/useSpreadsheetes";
 import { cn } from "@/lib/utils";
@@ -7,12 +8,14 @@ import { SheetStateContext, useDispatch } from "@/store/useSheetStore";
 import { Spreadsheet, type CellDisplay, type CellState } from "@/types/sheet";
 import { useSearchParams } from "@remix-run/react";
 import { PlusIcon, Redo2, SidebarIcon, Undo2 } from "lucide-react";
+import Papa from "papaparse";
 import type React from "react";
-import { useCallback, useContext, useState } from "react";
+import { useCallback, useContext, useRef, useState } from "react";
 import {
   TbCaretDownFilled,
   TbDownload,
   TbTextWrapColumn,
+  TbUpload,
 } from "react-icons/tb";
 import { v4 } from "uuid";
 import { useStore } from "zustand";
@@ -32,6 +35,7 @@ import {
 } from "./ui/dropdown-menu";
 import { Input } from "./ui/input";
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import VirtualizedSheet from "./VirtualizedSheet";
 
 interface SheetProps {
@@ -83,6 +87,10 @@ const SpreadsheetContent: React.FC<SheetProps> = ({
   const [isResizeDialogOpen, setIsResizeDialogOpen] = useState(false);
   const [isCopyDialogOpen, setIsCopyDialogOpen] = useState(false);
   const [sheetToCopy, setSheetToCopy] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const { toast } = useToast();
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleContextMenu = useCallback((event: React.MouseEvent) => {
     event.preventDefault();
@@ -297,8 +305,151 @@ const SpreadsheetContent: React.FC<SheetProps> = ({
       name,
     });
   };
+
+  const handleDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer.items && event.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setIsDragging(false);
+
+      if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+        const file = event.dataTransfer.files[0];
+        if (file.type === "text/csv" || file.name.endsWith(".csv")) {
+          Papa.parse(file, {
+            header: false,
+            complete: (results) => {
+              const csvData: string[][] = results.data as string[][];
+
+              if (csvData.length === 0) {
+                toast({
+                  title: "Error",
+                  description: "CSV file is empty.",
+                  variant: "destructive",
+                });
+                return;
+              }
+
+              // Dispatch IMPORT_CSV action with parsed data
+              dispatch({
+                type: "IMPORT_CSV",
+                payload: csvData,
+              });
+
+              event.dataTransfer.clearData();
+              toast({
+                title: "Success",
+                description: "CSV file successfully imported!",
+                variant: "default",
+              });
+            },
+            error: (error) => {
+              console.error("Error parsing CSV:", error);
+              toast({
+                title: "Error",
+                description: "Failed to parse the CSV file.",
+                variant: "destructive",
+              });
+            },
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "Please drop a valid CSV file.",
+            variant: "destructive",
+          });
+        }
+      }
+    },
+    [dispatch, toast]
+  );
+
+  // Trigger the hidden file input when Upload button is clicked
+  const handleUploadCSV = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Handle the file selection and parse the CSV
+  const handleFileSelected = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (file) {
+        if (file.type === "text/csv" || file.name.endsWith(".csv")) {
+          Papa.parse(file, {
+            header: false,
+            complete: (results) => {
+              const csvData: string[][] = results.data as string[][];
+
+              if (csvData.length === 0) {
+                toast({
+                  title: "Error",
+                  description: "CSV file is empty.",
+                  variant: "destructive",
+                });
+                return;
+              }
+
+              // Dispatch IMPORT_CSV action with parsed data
+              dispatch({
+                type: "IMPORT_CSV",
+                payload: csvData,
+              });
+
+              toast({
+                title: "Success",
+                description: "CSV file successfully imported!",
+                variant: "default",
+              });
+            },
+            error: (error) => {
+              console.error("Error parsing CSV:", error);
+              toast({
+                title: "Error",
+                description: "Failed to parse the CSV file.",
+                variant: "destructive",
+              });
+            },
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "Please select a valid CSV file.",
+            variant: "destructive",
+          });
+        }
+      }
+    },
+    [dispatch, toast]
+  );
+
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden flex-1">
+    <div
+      className={`relative flex flex-col h-full w-full overflow-hidden flex-1 ${isDragging ? "bg-blue-100 dark:bg-blue-900" : ""
+        }`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {isDragging && (
+        <div className="absolute inset-0 z-[10000] flex items-center justify-center bg-blue-100 bg-opacity-50 dark:bg-blue-900 dark:bg-opacity-50">
+          <p className="text-xl font-semibold text-blue-900 dark:text-blue-200">
+            Drop CSV file here
+          </p>
+        </div>
+      )}
       <DrawerNavigation open={open} onClose={() => setOpen(false)} />
       <div className="h-12 items-center flex border-b border-b-stone-200 dark:border-b-stone-800">
         <Button onClick={() => setOpen(true)} variant="icon">
@@ -321,16 +472,46 @@ const SpreadsheetContent: React.FC<SheetProps> = ({
             onValueChange={setSelectedCellDisplay}
             size={"sm"}
           >
-            <ToggleGroupItem value="wrap" aria-label="Toggle wrap">
-              <TbTextWrapColumn />
-            </ToggleGroupItem>
+            <TooltipProvider>
+              <Tooltip delayDuration={250}>
+                <TooltipTrigger>
+                  <ToggleGroupItem value="wrap" aria-label="Toggle wrap">
+                    <TbTextWrapColumn />
+                  </ToggleGroupItem>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Wrap text</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </ToggleGroup>
           <>
             <FunctionBindingsDialog sheetId={spreadsheetId} />
           </>
-          <Button variant="ghost" size="sm" onClick={handleDownloadCSV}>
-            <TbDownload size={16} />
-          </Button>
+          <TooltipProvider>
+            <Tooltip delayDuration={250}>
+              <TooltipTrigger>
+                <Button variant="ghost" size="sm" onClick={handleUploadCSV}>
+                  <TbUpload size={16} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">Upload CSV</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip delayDuration={250}>
+              <TooltipTrigger>
+                <Button variant="ghost" size="sm" onClick={handleDownloadCSV}>
+                  <TbDownload size={16} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">Download sheet</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <Button variant="ghost" size="sm" onClick={
             () => dispatch({
               type: "UNDO",
@@ -507,6 +688,14 @@ const SpreadsheetContent: React.FC<SheetProps> = ({
           sheetId={sheetToCopy}
         />
       )}
+      {/* Hidden file input for Upload CSV */}
+      <input
+        type="file"
+        accept=".csv,text/csv"
+        ref={fileInputRef}
+        style={{ display: "none" }}
+        onChange={handleFileSelected}
+      />
     </div>
   );
 };

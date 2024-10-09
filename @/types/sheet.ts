@@ -259,6 +259,12 @@ export const SheetActionSchema = z.discriminatedUnion("type", [
       }),
     }),
   }),
+  z.object({
+    type: z.literal("IMPORT_CSV"),
+    payload: z.array(z.array(z.string())).min(1).refine((arr) => arr.length > 0 && arr[0].length > 0, {
+      message: "Imported file must contain at least one row and one column",
+    }),
+  }),
 ]);
 
 export type SheetAction = z.infer<typeof SheetActionSchema>;

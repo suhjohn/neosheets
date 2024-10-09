@@ -23,6 +23,7 @@ import {
 import { ClickableInput } from "./ClickableInput";
 import { FunctionBindingsSelectPanel } from "./FunctionBindingsSelectPanel";
 import { Input } from "./ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 
 type FunctionBindingsDialogProps = {
   sheetId: string;
@@ -154,11 +155,20 @@ export const FunctionBindingsDialog: FC<FunctionBindingsDialogProps> = ({
         }
       }}
     >
-      <DialogTrigger asChild>
-        <Button variant="ghost" size={"sm"}>
-          <PiFunction size={16} />
-        </Button>
-      </DialogTrigger>
+      <TooltipProvider>
+        <Tooltip delayDuration={250}>
+          <TooltipTrigger>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size={"sm"}>
+                <PiFunction size={16} />
+              </Button>
+            </DialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="text-xs">Bind functions</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <DialogContent className="flex flex-col align-top">
         {selectedFunctionBinding === null && (
           <>

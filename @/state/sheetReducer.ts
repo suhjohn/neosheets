@@ -20,7 +20,6 @@ import {
   type RowState,
   type SheetState
 } from "@/types/sheet"; // Ensure PERFORM_AUTOFILL is imported
-import { v4 } from "uuid";
 import { calculateTextHeight, generateExcelHeaders, generateFillSequence } from "../lib/utils";
 import { handleSelectedToEditing } from "./common";
 import {
@@ -290,12 +289,13 @@ export const applyAction = (
         const newColumn = { ...column };
 
         // Shift cell states down for rows at or below the insertion point
-        Object.keys(column)
+        Object.keys(newColumn)
           .map(Number)
           .sort((a, b) => b - a)
           .forEach((rowKey) => {
             if (rowKey >= rowIndex) {
               newColumn[rowKey + 1] = column[rowKey];
+              delete newColumn[rowKey];
             }
           });
 
@@ -315,10 +315,12 @@ export const applyAction = (
         .map(Number)
         .sort((a, b) => b - a)
         .forEach((key) => {
-          if (key >= rowIndex) {
-            newRowStates[key + 1] = state.rowStates[key];
+          const numericKey = Number(key);
+          if (numericKey >= rowIndex) {
+            newRowStates[numericKey + 1] = state.rowStates[numericKey];
+            delete newRowStates[numericKey];
           } else {
-            newRowStates[key] = state.rowStates[key];
+            newRowStates[numericKey] = state.rowStates[numericKey];
           }
         });
 
@@ -333,10 +335,33 @@ export const applyAction = (
         };
       }
 
+      // Update the rowCount to accommodate the new row if necessary
+      const updatedRowCount = Math.max(state.rowCount, rowIndex + 1);
+
+      // Adjust selected positions
+      let updatedSelectedCellPosition = state.selectedCellPosition;
+      if (state.selectedCellPosition && state.selectedCellPosition.row >= rowIndex) {
+        updatedSelectedCellPosition = {
+          ...state.selectedCellPosition,
+          row: state.selectedCellPosition.row + 1,
+        };
+      }
+
+      let updatedSelectedCellRange = state.selectedCellRange;
+      if (state.selectedCellRange) {
+        const { start, end } = state.selectedCellRange;
+        const newStart = start.row >= rowIndex ? { ...start, row: start.row + 1 } : start;
+        const newEnd = end.row >= rowIndex ? { ...end, row: end.row + 1 } : end;
+        updatedSelectedCellRange = { start: newStart, end: newEnd };
+      }
+
       return {
         ...state,
         cellStates: newCellStates,
         rowStates: newRowStates,
+        rowCount: updatedRowCount,
+        selectedCellPosition: updatedSelectedCellPosition,
+        selectedCellRange: updatedSelectedCellRange,
       };
     }
     case "SET_EDITING_VALUE":
@@ -345,6 +370,7 @@ export const applyAction = (
       const rowsToDelete = action.payload.sort((a, b) => b - a); // Sort descending
       let newCellStates = [...state.cellStates];
       const newRowStates = { ...state.rowStates };
+      let newRowCount = state.rowCount;
 
       for (const rowIndex of rowsToDelete) {
         // Remove row from cellStates
@@ -374,12 +400,41 @@ export const applyAction = (
             newRowStates[key - 1] = newRowStates[key];
             delete newRowStates[key];
           });
+
+        // Decrement the rowCount
+        newRowCount -= 1;
+      }
+
+      // Adjust selected positions
+      let updatedSelectedCellPosition = state.selectedCellPosition;
+      if (state.selectedCellPosition && state.selectedCellPosition.row >= rowsToDelete[0]) {
+        const offset = rowsToDelete.filter(row => row <= state.selectedCellPosition!.row).length;
+        updatedSelectedCellPosition = {
+          ...state.selectedCellPosition,
+          row: state.selectedCellPosition.row - offset,
+        };
+      }
+
+      let updatedSelectedCellRange = state.selectedCellRange;
+      if (state.selectedCellRange) {
+        const { start, end } = state.selectedCellRange;
+        const deletedCount = rowsToDelete.filter(row => row <= end.row).length;
+        const newStart = start.row > rowsToDelete[rowsToDelete.length - 1]
+          ? { ...start, row: start.row - deletedCount }
+          : start;
+        const newEnd = end.row > rowsToDelete[rowsToDelete.length - 1]
+          ? { ...end, row: end.row - deletedCount }
+          : end;
+        updatedSelectedCellRange = { start: newStart, end: newEnd };
       }
 
       return {
         ...state,
         cellStates: newCellStates,
         rowStates: newRowStates,
+        rowCount: newRowCount,
+        selectedCellPosition: updatedSelectedCellPosition,
+        selectedCellRange: updatedSelectedCellRange,
       };
     }
     case "INSERT_COLUMN": {
@@ -605,7 +660,7 @@ export const applyAction = (
           }
         }
       }
-      
+
       // Generate filled data using utility functions
       const filledData = generateFillSequence(dataToFill, fillRange);
 
@@ -649,6 +704,73 @@ export const applyAction = (
         cellStates: newCellStates,
         rowStates: newRowStates,
         autofillTarget: null, // Reset autofill target after completion
+      };
+    }
+    case "IMPORT_CSV": {
+      const csvData = action.payload;
+
+      const newCellStates = [...state.cellStates];
+      const newRowStates = { ...state.rowStates };
+      let updatedRowCount = state.rowCount;
+
+      csvData.forEach((row, rowIndex) => {
+        row.forEach((cellValue, colIndex) => {
+          if (!newCellStates[colIndex]) {
+            newCellStates[colIndex] = {};
+          }
+
+          const existingCell = newCellStates[colIndex][rowIndex] || {};
+          newCellStates[colIndex][rowIndex] = {
+            ...existingCell,
+            value: cellValue,
+            display: existingCell.display || "hide",
+          };
+        });
+
+        // Update row count if necessary
+        if (rowIndex >= updatedRowCount) {
+          updatedRowCount = rowIndex + 1;
+        }
+
+        // Initialize rowState if not present
+        if (!newRowStates[rowIndex]) {
+          newRowStates[rowIndex] = {
+            height: DEFAULT_CELL_HEIGHT,
+            specifiedHeight: null,
+            hidden: false,
+          };
+        }
+      });
+
+      // Update column count if CSV has more columns than current state
+      const newColumnCount = Math.max(state.headerStates.length, csvData[0]?.length || 0);
+
+      // Add new header states if needed
+      const newHeaderStates = [...state.headerStates];
+      while (newHeaderStates.length < newColumnCount) {
+        newHeaderStates.push({
+          value: `${newHeaderStates.length + 1}`,
+          type: "string",
+          width: DEFAULT_COLUMN_WIDTH, // Ensure this constant is imported or defined
+        });
+      }
+
+      // Adjust selected positions if necessary
+      let updatedSelectedCellPosition = state.selectedCellPosition;
+      if (state.selectedCellPosition && state.selectedCellPosition.row >= updatedRowCount) {
+        updatedSelectedCellPosition = {
+          ...state.selectedCellPosition,
+          row: updatedRowCount - 1,
+        };
+      }
+
+      return {
+        ...state,
+        cellStates: newCellStates,
+        rowStates: newRowStates,
+        rowCount: updatedRowCount,
+        headerStates: newHeaderStates,
+        selectedCellPosition: updatedSelectedCellPosition,
       };
     }
     default:
