@@ -25,7 +25,7 @@ const NavigationContent = () => {
   return (
     <div className="flex flex-col h-full gap-4 px-2">
       <div className="flex items-center justify-between px-2">
-        <Link to="/" className="font-bold flex space-x-2 items-center">
+        <Link to="/spreadsheet" className="font-bold flex space-x-2 items-center">
           <p className={cn("text-black dark:text-white rounded-md font-mono")}>
             neosheets
           </p>
@@ -112,7 +112,7 @@ const NavigationContent = () => {
         </Button>
       </nav>
       <div className="flex gap-2 items-center justify-between px-2 pb-4">
-        <Button variant="ghost" className="p-0 px-1.5 py-1.5 h-8" asChild>
+        <Button variant="icon" className="p-0 px-1.5 py-1.5 h-8" asChild>
           <Link
             to="https://github.com/suhjohn/prompt-playground"
             target="_blank"
@@ -159,7 +159,7 @@ export const DrawerNavigation: FC<DrawerSideNavigationProps> = ({
 );
 
 export const OpenNavigation: FC = () => (
-  <div className="hidden lg:block h-screen text-stone-200 flex-shrink-0 pt-4 w-60 dark:bg-black">
+  <div className="hidden lg:block h-screen text-stone-200 flex-shrink-0 pt-4 w-60 dark:bg-black border-r border-r-stone-200 dark:border-r-stone-800">
     <NavigationContent />
   </div>
 );
@@ -185,85 +185,96 @@ export const ClosedNavigation: FC = () => {
         "bg-white"
       )}
     >
-      <nav className="flex flex-col items-center">
-        <Button
-          variant={isActive("/table") ? "selected" : "ghost"}
-          className="w-full h-10"
-          asChild
-        >
-          <Link
-            to="/spreadsheet"
-            className={cn(
-              "w-auto flex space-x-2 items-center",
-              "text-left",
-              isActive("/spreadsheet")
-                ? "font-semibold"
-                : "text-stone-800 dark:text-stone-200"
-            )}
+      <nav className="flex flex-col items-center gap-4">
+        <div className="flex items-center justify-between px-2">
+          <Link to="/spreadsheet" className="font-bold flex space-x-2 items-center">
+            <p
+              className={cn("text-black dark:text-white rounded-md font-mono")}
+            >
+              ns
+            </p>
+          </Link>
+        </div>
+        <div className="flex flex-col">
+          <Button
+            variant={isActive("/table") ? "selected" : "ghost"}
+            className="w-full h-10"
+            asChild
           >
-            <Table2
-              size={16}
-              className={
+            <Link
+              to="/spreadsheet"
+              className={cn(
+                "w-auto flex space-x-2 items-center",
+                "text-left",
                 isActive("/spreadsheet")
-                  ? "text-primary"
-                  : "text-stone-600 dark:text-stone-400"
-              }
-            />
-          </Link>
-        </Button>
-        <Button
-          variant={isActive("/function") ? "selected" : "ghost"}
-          className="w-full h-10"
-          asChild
-        >
-          <Link
-            to="/function"
-            className={cn(
-              "w-auto flex space-x-2 items-center",
-              "text-left",
-              isActive("/function")
-                ? "font-semibold"
-                : "text-stone-800 dark:text-stone-200"
-            )}
+                  ? "font-semibold"
+                  : "text-stone-800 dark:text-stone-200"
+              )}
+            >
+              <Table2
+                size={16}
+                className={
+                  isActive("/spreadsheet")
+                    ? "text-primary"
+                    : "text-stone-600 dark:text-stone-400"
+                }
+              />
+            </Link>
+          </Button>
+          <Button
+            variant={isActive("/function") ? "selected" : "ghost"}
+            className="w-full h-10"
+            asChild
           >
-            <TbLambda
-              size={16}
-              className={
+            <Link
+              to="/function"
+              className={cn(
+                "w-auto flex space-x-2 items-center",
+                "text-left",
                 isActive("/function")
-                  ? "text-primary"
-                  : "text-stone-600 dark:text-stone-400"
-              }
-            />
-          </Link>
-        </Button>
-        <Button
-          variant={isActive("/secrets") ? "selected" : "ghost"}
-          className="w-full h-10"
-          asChild
-        >
-          <Link
-            to="/secrets"
-            className={cn(
-              "w-full flex space-x-2 items-center",
-              "text-left",
-              isActive("/secrets")
-                ? "font-semibold"
-                : "text-stone-800 dark:text-stone-200"
-            )}
+                  ? "font-semibold"
+                  : "text-stone-800 dark:text-stone-200"
+              )}
+            >
+              <TbLambda
+                size={16}
+                className={
+                  isActive("/function")
+                    ? "text-primary"
+                    : "text-stone-600 dark:text-stone-400"
+                }
+              />
+            </Link>
+          </Button>
+          <Button
+            variant={isActive("/secrets") ? "selected" : "ghost"}
+            className="w-full h-10"
+            asChild
           >
-            <KeyRound
-              size={16}
-              className={
+            <Link
+              to="/secrets"
+              className={cn(
+                "w-full flex space-x-2 items-center",
+                "text-left",
                 isActive("/secrets")
-                  ? "text-primary"
-                  : "text-stone-600 dark:text-stone-400"
-              }
-            />
-          </Link>
-        </Button>
+                  ? "font-semibold"
+                  : "text-stone-800 dark:text-stone-200"
+              )}
+            >
+              <KeyRound
+                size={16}
+                className={
+                  isActive("/secrets")
+                    ? "text-primary"
+                    : "text-stone-600 dark:text-stone-400"
+                }
+              />
+            </Link>
+          </Button>
+        </div>
       </nav>
       <div className="flex flex-col gap-2 items-center justify-between pb-4">
-        <Button variant="ghost" className="p-0 px-1.5 py-1.5 h-8" asChild>
+        <Button variant="icon" className="p-0 px-1.5 py-1.5 h-8" asChild>
           <Link
             to="https://github.com/suhjohn/prompt-playground"
             target="_blank"

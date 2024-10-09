@@ -6,7 +6,7 @@ import {
 } from "@/hooks/useSpreadsheetes";
 import { cn, formatAppleDate } from "@/lib/utils";
 import { Link, useNavigate } from "@remix-run/react";
-import { PlusIcon, SidebarIcon } from "lucide-react";
+import { Loader, PlusIcon, SidebarIcon } from "lucide-react";
 import { FC, useState } from "react";
 import { DrawerNavigation, OpenNavigation } from "./SideNavigation";
 import { Button } from "./ui/button";
@@ -26,7 +26,7 @@ import {
 import { Input } from "./ui/input";
 
 export const SpreadsheetsPage: FC = () => {
-  const { data: spreadsheets, isLoading, error } = useSpreadsheets();
+  const { data: spreadsheets, isLoading } = useSpreadsheets();
   const updateSpreadsheet = useUpdateSpreadsheet();
   const createSpreadsheet = useCreateSpreadsheet();
   const deleteSpreadsheet = useDeleteSpreadsheet();
@@ -75,9 +75,6 @@ export const SpreadsheetsPage: FC = () => {
     setNewName("");
   };
 
-  if (isLoading) return <div>Loading spreadsheets...</div>;
-  if (error) return <div>Error loading spreadsheets.</div>;
-
   return (
     <div className="flex h-[100dvh] w-full">
       <OpenNavigation />
@@ -121,8 +118,13 @@ export const SpreadsheetsPage: FC = () => {
                   <p>Create spreadsheet</p>
                 </Button>
               </div>
+              {isLoading && (
+                <div className="px-4 h-full flex flex-col text-left items-center justify-center">
+                  <Loader className="w-8 h-8 text-stone-500 dark:text-stone-400 animate-spin" />
+                </div>
+              )}
               {spreadsheets?.length === 0 && (
-                <div className="h-full flex flex-col text-left items-center justify-center">
+                <div className="px-4 h-full flex flex-col text-left items-center justify-center">
                   <div className="flex flex-col gap-6 items-start">
                     <div className="gap-2 flex flex-col max-w-96">
                       <p>Spreadsheets</p>
