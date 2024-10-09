@@ -57,7 +57,7 @@ export const CreateFunctionDialog: FC = () => {
       ],
       model: "",
       prompt: null,
-      args: "",
+      args: `{"max_tokens": 512, "temperature": 1}`,
       outputPath: [],
     });
   const [error, setError] = useState<string | null>(null);
@@ -218,7 +218,7 @@ export const CreateFunctionDialog: FC = () => {
             <div
               className={cn(
                 "sticky top-0 flex flex-row justify-between items-center w-full p-4",
-                "bg-white dark:bg-stone-950"
+                "bg-white dark:bg-stone-950 z-10"
               )}
             >
               <p className="text-xsm">New Function</p>
@@ -356,7 +356,7 @@ export const CreateFunctionDialog: FC = () => {
                           onChange={(e) =>
                             setNewPromptFunction({
                               ...newPromptFunction,
-                              model: e.target.value,
+                              model: e.target.value.trim(),
                             })
                           }
                         />

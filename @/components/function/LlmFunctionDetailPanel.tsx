@@ -68,6 +68,7 @@ export function LLMFunctionDetailPanel({
       ? functionData.outputPath.join(",")
       : null
   );
+
   useEffect(() => {
     if (functionData && functionData.type === "llm") {
       setState({
@@ -100,6 +101,8 @@ export function LLMFunctionDetailPanel({
 
   const handleChange = useCallback(
     async (updatedFields: Partial<CombinedState>) => {
+      // Check if there are any changes
+      // This really is a workaround for the editor auto-calling this on render
       let diffExists = false;
       Object.keys(updatedFields).forEach((key) => {
         const typedKey = key as keyof CombinedState;
@@ -169,7 +172,7 @@ export function LLMFunctionDetailPanel({
     setState((prev) => ({ ...prev, args: value }));
     const { error } = validateJSON(value);
     setJsonError(error);
-    if (error !== null) {
+    if (error === null) {
       handleChange({ args: value });
     }
   };
@@ -279,7 +282,7 @@ export function LLMFunctionDetailPanel({
                   className="w-full"
                   type="text"
                   value={state.model}
-                  onChange={(e) => handleChange({ model: e.target.value })}
+                  onChange={(e) => handleChange({ model: e.target.value.trim() })}
                 />
               </div>
             </div>

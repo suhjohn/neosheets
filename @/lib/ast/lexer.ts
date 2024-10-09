@@ -31,7 +31,8 @@ export function tokenize({
 
     if (/[A-Z]/i.test(char)) {
       let value = "";
-      while (current < input.length && /[A-Z0-9]/i.test(input[current])) {
+      // Updated regex to include underscore
+      while (current < input.length && /[A-Z0-9_]/i.test(input[current])) {
         value += input[current];
         current++;
       }

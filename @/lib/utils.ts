@@ -318,6 +318,7 @@ export const validateJSON = (
     JSON.parse(jsonString);
     return { isValid: true, error: null };
   } catch (e) {
+    console.error(jsonString, e)
     if (e instanceof SyntaxError) {
       const errorMessage = e.message;
       if (errorMessage.includes("Unexpected token")) {
