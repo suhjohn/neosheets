@@ -215,50 +215,70 @@ export const applyAction = (
     case "HANDLE_UPDATE_CELL_RANGE": {
       const { range, value, display } = action.payload;
       const { start, end } = range;
-      const newCellStates = [...state.cellStates];
+
+      // Clone cellStates and rowStates to maintain immutability
+      const newCellStates = state.cellStates.map(column => ({ ...column }));
       const newRowStates = { ...state.rowStates };
 
-      for (let col = start.col; col <= end.col; col++) {
-        for (let row = start.row; row <= end.row; row++) {
+      // Precompute font and dimensions to avoid recalculating inside loops
+      const font = `${DEFAULT_FONT_SIZE}px ${DEFAULT_FONT_FAMILY}`;
+
+      for (let row = start.row; row <= end.row; row++) {
+        let maxRowHeight = DEFAULT_CELL_HEIGHT;
+
+        for (let col = start.col; col <= end.col; col++) {
           const existingCell = state.cellStates[col]?.[row];
           const displayMode = display || existingCell?.display || "hide";
+          const newValue = value !== undefined ? value : existingCell?.value || "";
 
-          newCellStates[col] = {
-            ...newCellStates[col],
-            [row]: {
-              value: value ?? existingCell?.value ?? "",
-              display: displayMode,
-            },
+          // Update the cell state
+          newCellStates[col][row] = {
+            ...newCellStates[col][row],
+            value: newValue,
+            display: displayMode,
           };
 
-          // Recalculate row height
-          let maxRowHeight = 0;
-          for (let i = 0; i < state.headerStates.length; i++) {
-            const cell =
-              i === col
-                ? { value, display: displayMode }
-                : state.cellStates[i]?.[row];
-            const isInRange = i >= start.col && i <= end.col;
+          // Calculate the height for the updated cell
+          const cellWidth = state.headerStates[col].width -
+            DEFAULT_CELL_BORDER_WIDTH * 4 -
+            DEFAULT_CELL_PADDING * 4;
+
+          const cellHeight = calculateTextHeight({
+            text: newValue,
+            width: cellWidth,
+            font,
+            lineHeight: DEFAULT_LINE_HEIGHT,
+            display: displayMode,
+          });
+
+          // Determine the maximum height required for the row
+          maxRowHeight = Math.max(maxRowHeight, cellHeight);
+        }
+
+        // After updating cells in the range, check if other cells in the row affect the row height
+        for (let col = 0; col < state.headerStates.length; col++) {
+          if (col < start.col || col > end.col) {
+            const cell = state.cellStates[col]?.[row];
             if (cell) {
-              const text = cell.value ?? "";
-              const height = calculateTextHeight({
-                text,
-                width:
-                  state.headerStates[i].width -
-                  DEFAULT_CELL_BORDER_WIDTH * 4 -
-                  DEFAULT_CELL_PADDING * 4,
-                font: `${DEFAULT_FONT_SIZE}px ${DEFAULT_FONT_FAMILY}`,
+              const cellWidth = state.headerStates[col].width -
+                DEFAULT_CELL_BORDER_WIDTH * 4 -
+                DEFAULT_CELL_PADDING * 4;
+
+              const cellHeight = calculateTextHeight({
+                text: cell.value || "",
+                width: cellWidth,
+                font,
                 lineHeight: DEFAULT_LINE_HEIGHT,
-                display: isInRange ? display : cell.display,
+                display: cell.display,
               });
-              maxRowHeight = Math.max(
-                maxRowHeight,
-                height,
-                DEFAULT_CELL_HEIGHT
-              );
+
+              maxRowHeight = Math.max(maxRowHeight, cellHeight);
             }
           }
+        }
 
+        // Update the row height if it has changed
+        if (newRowStates[row]?.height !== maxRowHeight) {
           newRowStates[row] = {
             ...newRowStates[row],
             height: maxRowHeight,
