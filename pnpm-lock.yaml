@@ -17,6 +17,9 @@ importers:
       '@fontsource-variable/inter':
         specifier: ^5.0.20
         version: 5.0.20
+      '@fontsource-variable/jetbrains-mono':
+        specifier: ^5.1.1
+        version: 5.1.1
       '@fontsource/inter':
         specifier: ^5.0.20
         version: 5.0.20
@@ -1088,6 +1091,9 @@ packages:
 
   '@fontsource-variable/inter@5.0.20':
     resolution: {integrity: sha512-dhzG4Zls/tIrf8h0FhTNi8jT/uFwNhdTY2vKe6DYqoXDYOfEcTVZDyh1hKml1rlLT44Y7OoKoGz8w7czDW7twQ==}
+
+  '@fontsource-variable/jetbrains-mono@5.1.1':
+    resolution: {integrity: sha512-V+1aRFRvuZ66PpO30s8l/2aADKzpV9VRsO3kSZE+rTMvi4vab3cUcPHMN2z+wAvjkYJO71Yf+g3/Y6pSMmQpVQ==}
 
   '@fontsource/inter@5.0.20':
     resolution: {integrity: sha512-rtw2F7xfM7rJmmnncXnR4ADr5wXsp4GyN1O1jmQJ1PMjAK+bm620/ZkQkeOYOkGoa09OksGinOeMA+Mkt6K9PQ==}
@@ -7316,6 +7322,8 @@ snapshots:
   '@floating-ui/utils@0.2.7': {}
 
   '@fontsource-variable/inter@5.0.20': {}
+
+  '@fontsource-variable/jetbrains-mono@5.1.1': {}
 
   '@fontsource/inter@5.0.20': {}
 

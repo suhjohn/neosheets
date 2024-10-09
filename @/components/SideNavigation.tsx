@@ -114,7 +114,7 @@ const NavigationContent = () => {
       <div className="flex gap-2 items-center justify-between px-2 pb-4">
         <Button variant="icon" className="p-0 px-1.5 py-1.5 h-8" asChild>
           <Link
-            to="https://github.com/suhjohn/prompt-playground"
+            to="https://github.com/suhjohn/neosheets"
             target="_blank"
             rel="noreferrer"
           >
@@ -276,7 +276,7 @@ export const ClosedNavigation: FC = () => {
       <div className="flex flex-col gap-2 items-center justify-between pb-4">
         <Button variant="icon" className="p-0 px-1.5 py-1.5 h-8" asChild>
           <Link
-            to="https://github.com/suhjohn/prompt-playground"
+            to="https://github.com/suhjohn/neosheets"
             target="_blank"
             rel="noreferrer"
           >

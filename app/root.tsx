@@ -17,6 +17,7 @@ import "@fontsource/inter/800-italic.css";
 import "@fontsource/inter/800.css";
 import "@fontsource/inter/900-italic.css";
 import "@fontsource/inter/900.css";
+import '@fontsource-variable/jetbrains-mono';
 import { cssBundleHref } from "@remix-run/css-bundle";
 import { type LinksFunction, type LoaderFunctionArgs } from "@remix-run/node";
 import {

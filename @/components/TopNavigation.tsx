@@ -52,7 +52,7 @@ export const TopNavigation = () => {
         <div className="flex gap-2 items-center">
           <Button variant={"ghost"} className="p-0 px-1.5 py-1.5 h-8" asChild>
             <a
-              href={"https://github.com/suhjohn/prompt-playground"}
+              href={"https://github.com/suhjohn/neosheets"}
               target="_blank"
               rel="noreferrer"
               className={"flex items-center"}
