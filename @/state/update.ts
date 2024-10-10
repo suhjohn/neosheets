@@ -133,6 +133,7 @@ export const handleFormulaUpdate = ({
     functionBindings: transformedFunctionBindings,
     domainSettings,
     display,
+    secretKeys,
   });
   return {
     ...state,

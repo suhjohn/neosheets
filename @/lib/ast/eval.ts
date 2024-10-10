@@ -9,6 +9,7 @@ import {
 import { Semaphore } from "async-mutex";
 import { SEMAPHORE_MAP, SEMAPHORE_MUTEX } from "../semaphore";
 
+import { SecretKeys } from "@/types/secret";
 import { tokenize } from "./lexer";
 import { parse } from "./parser";
 
@@ -22,13 +23,13 @@ export class CircularDependencyError extends Error {
   }
 }
 
-
 function evaluateAst({
   ast,
   data,
   currentCell,
   evaluationChain,
   functionBindings,
+  secretKeys,
   domainSettings,
 }: {
   ast: ASTNode;
@@ -36,13 +37,51 @@ function evaluateAst({
   currentCell: CellAddress;
   evaluationChain: Set<string>;
   functionBindings: FunctionBindingsType;
+  secretKeys: SecretKeys;
   domainSettings?: DomainSetting[];
 }): string | number | string[] | number[] | (string | number)[] | object {
   switch (ast.type) {
     case "Number":
       return ast.value;
-    case "String":
-      return ast.value;
+    case "String": {
+      const rawString = ast.value;
+      const regex = /&([A-Z]+\d+)&/g;
+      let match;
+      let result = rawString;
+      while ((match = regex.exec(rawString)) !== null) {
+        const cellRef = match[1];
+        const { col, row } = parseCellReference(cellRef);
+        const refAddress = cellAddressToString({ col, row });
+
+        if (evaluationChain.has(refAddress)) {
+          throw new CircularDependencyError(
+            `Circular dependency detected at ${refAddress}`
+          );
+        }
+
+        evaluationChain.add(refAddress);
+        const cellValue = data[col]?.[row]?.value;
+
+        let evaluatedValue: string | number;
+        if (typeof cellValue === "string" && cellValue.startsWith("=")) {
+          evaluatedValue = evaluateFormula({
+            formula: cellValue,
+            data,
+            currentCell: { col, row },
+            evaluationChain,
+            functionBindings,
+            secretKeys,
+            domainSettings,
+          }) as string | number;
+        } else {
+          evaluatedValue = cellValue !== undefined ? cellValue : "";
+        }
+
+        // Replace the &CellRef& with its evaluated value
+        result = result.replace(match[0], evaluatedValue.toString());
+      }
+      return result;
+    }
     case "CellReference": {
       // eslint-disable-next-line no-case-declarations
       const refAddress = cellAddressToString({
@@ -63,6 +102,8 @@ function evaluateAst({
           currentCell: { col: ast.columnIndex, row: ast.rowIndex },
           evaluationChain,
           functionBindings,
+          secretKeys,
+          domainSettings,
         });
       }
       return cellValue !== undefined ? cellValue : 0;
@@ -85,6 +126,8 @@ function evaluateAst({
         currentCell,
         evaluationChain,
         functionBindings,
+        secretKeys,
+        domainSettings,
       }) as number;
       const right = evaluateAst({
         ast: ast.right,
@@ -92,6 +135,8 @@ function evaluateAst({
         currentCell,
         evaluationChain,
         functionBindings,
+        secretKeys,
+        domainSettings,
       }) as number;
       switch (ast.operator) {
         case "+":
@@ -114,6 +159,8 @@ function evaluateAst({
           currentCell,
           evaluationChain,
           functionBindings,
+          secretKeys,
+          domainSettings,
         })
       );
       const functionObj = functionBindings[ast.name.toUpperCase()];
@@ -176,7 +223,7 @@ function evaluateAst({
       };
       const res = new Function(
         "fetch",
-        `${transpiledCode};\nreturn run(${argString});`
+        `const secretKeys = ${JSON.stringify(secretKeys.body)}\n${transpiledCode};\nreturn run(${argString});`
       )(customFetch);
       return res;
     }
@@ -189,6 +236,8 @@ function evaluateAst({
           currentCell,
           evaluationChain,
           functionBindings,
+          secretKeys,
+          domainSettings,
         }) as string | number | string[] | number[] | (string | number)[];
       }
       return obj;
@@ -203,6 +252,7 @@ export function evaluateFormula({
   data,
   currentCell,
   functionBindings,
+  secretKeys,
   domainSettings,
   evaluationChain = new Set<string>(),
 }: {
@@ -210,6 +260,7 @@ export function evaluateFormula({
   data: CellStates[];
   currentCell: CellAddress;
   functionBindings: FunctionBindingsType;
+  secretKeys: SecretKeys;
   domainSettings?: DomainSetting[];
   evaluationChain?: Set<string>;
 }): string | number | string[] | number[] | (string | number)[] | object {
@@ -232,6 +283,7 @@ export function evaluateFormula({
     currentCell,
     evaluationChain,
     functionBindings,
+    secretKeys,
     domainSettings,
   });
 }
@@ -273,4 +325,25 @@ export function getCellDependencies({
 
   traverse(ast);
   return dependencies;
+}
+
+// Helper function to parse cell reference like "A1" into column and row indices
+function parseCellReference(cellRef: string): { col: number; row: number } {
+  const match = /^([A-Z]+)(\d+)$/.exec(cellRef);
+  if (!match) {
+    throw new Error(`Invalid cell reference: ${cellRef}`);
+  }
+  const [, colLetters, rowStr] = match;
+  const col = lettersToColumnIndex(colLetters);
+  const row = parseInt(rowStr, 10) - 1; // Assuming rows start at 1
+  return { col, row };
+}
+
+// Helper function to convert column letters to zero-based index (e.g., A -> 0, B -> 1, ..., AA -> 26)
+function lettersToColumnIndex(letters: string): number {
+  let index = 0;
+  for (let i = 0; i < letters.length; i++) {
+    index = index * 26 + (letters.charCodeAt(i) - 64);
+  }
+  return index - 1;
 }

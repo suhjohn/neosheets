@@ -33,6 +33,7 @@ const SUBSTITUTE_FUNCTION_ID = "e1933dc3-952b-4d77-8921-dc2ca6f9f8ad";
 const SEARCH_FUNCTION_ID = "7fc44f59-a014-499a-a954-b5da15ae6b8d";
 const ROUNDUP_FUNCTION_ID = "f8cbbf75-a771-4254-86d1-1b80c69f06c5";
 const ROUNDDOWN_FUNCTION_ID = "728f7461-1be2-44d7-a6bb-380a8ecbfb77";
+const GPT_FUNCTION_ID = "01e17b6d-5390-4edc-9f4a-fe0584d665c9";
 const EXTRACT_XML_CONTENT_FUNCTION_ID = "01e17b6d-5390-4edc-9f4a-fe0584d665c9";
 
 export const DEFAULT_FUNCTIONS: FunctionType[] = [
@@ -552,6 +553,34 @@ function run(key: string, str: string) {
     return match ? match[1] : '';
 }`,
   },
+  {
+    id: GPT_FUNCTION_ID,
+    functionName: "GPT",
+    type: "function",
+    createdBy: "neosheets",
+    functionBody: `async function run(prompt, temperature: number = 1, model: string = "gpt-4o") {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": \`Bearer $\{secretKeys['OPENAI_API_KEY']}\`
+        },
+        body: JSON.stringify({
+          messages: [{ role: "user", content: prompt }],
+          model: model,
+          temperature: temperature
+        })
+      })
+      if (!response.ok) {
+        throw new Error(\`Request failed with status \${response.status}\`);
+      }
+      const data = await response.json();
+      return data.choices[0].message.content;
+    }`,
+    description: "Generates a response based on the given prompt, temperature, and model. Defaults to gpt-4o with a temperature of 1.",
+    createdAt: "2024-09-18T00:00:00.000Z",
+    updatedAt: "2024-09-18T00:00:00.000Z",
+  }
 ];
 
 export const DEFAULT_FUNCTION_BINDINGS: FunctionBindingType[] = [

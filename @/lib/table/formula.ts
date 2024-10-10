@@ -1,5 +1,6 @@
 import { type FunctionBindingsType } from "@/types/ast";
 import { DomainSetting } from "@/types/domain";
+import { SecretKeys } from "@/types/secret";
 import {
   cellAddressToString,
   type CellState,
@@ -19,12 +20,14 @@ export const updateCellFormula = ({
   newFormula,
   functionBindings,
   domainSettings,
+  secretKeys,
   display = "hide",
 }: {
   prevData: CellStates[];
   colIndex: number;
   rowIndex: number;
   newFormula: string;
+  secretKeys: SecretKeys;
   functionBindings: FunctionBindingsType;
   domainSettings?: DomainSetting[];
   display?: "wrap" | "hide";
@@ -81,6 +84,7 @@ export const updateCellFormula = ({
         col: colIndex,
         row: rowIndex,
       },
+      secretKeys,
       functionBindings,
       domainSettings,
     });
