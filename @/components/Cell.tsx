@@ -521,10 +521,14 @@ const Cell = memo<CellProps>(
       isInAutofillRange && colIndex === autofillRange.end?.col;
 
     const autofillBorderClasses = [
-      isAutofillTopBorder && "border-dashed border-t-stone-500 dark:border-t-stone-500",
-      isAutofillBottomBorder && "border-dashed border-b-stone-500 dark:border-b-stone-500",
-      isAutofillLeftBorder && "border-dashed border-l-stone-500 dark:border-l-stone-500",
-      isAutofillRightBorder && "border-dashed border-r-stone-500 dark:border-r-stone-500",
+      isAutofillTopBorder &&
+        "border-dashed border-t-stone-500 dark:border-t-stone-500",
+      isAutofillBottomBorder &&
+        "border-dashed border-b-stone-500 dark:border-b-stone-500",
+      isAutofillLeftBorder &&
+        "border-dashed border-l-stone-500 dark:border-l-stone-500",
+      isAutofillRightBorder &&
+        "border-dashed border-r-stone-500 dark:border-r-stone-500",
     ].join(" ");
 
     const cellContent =
@@ -565,12 +569,12 @@ const Cell = memo<CellProps>(
           {isFormula && (
             <div className="absolute min-w-64">
               <Command>
-                <CommandList role="listbox" aria-label="Function List">
+                <CommandList role="listbox" aria-label="Formula List">
                   {currentFunctionStr !== null && (
                     <>
                       <CommandGroup className="p-2 sticky top-0 bg-white dark:bg-stone-950 z-10">
                         <p className="text-xs text-stone-500 dark:text-stone-400">
-                          Current function
+                          Current formula
                         </p>
                         <pre className="text-xs whitespace-pre-wrap">
                           {currentFunctionStr}(
@@ -725,7 +729,7 @@ const Cell = memo<CellProps>(
       >
         {cellContent}
         {((isInRange && isBottomBorderInRange && isRightBorderInRange) ||
-          (!isInRange && isSelected)) && (
+          (!isInRange && isSelected && !isEditing)) && (
           <div
             className="z-[100] absolute bottom-0 right-0 w-2 h-2 bg-blue-500 rounded-full hover:cursor-crosshair"
             style={{

@@ -43,7 +43,7 @@ export const TopNavigation = () => {
                   "font-medium"
                 )}
               >
-                <p>Function</p>
+                <p>Formula</p>
               </Link>
             </Button>
           </div>

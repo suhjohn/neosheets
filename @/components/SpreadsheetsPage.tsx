@@ -78,7 +78,7 @@ export const SpreadsheetsPage: FC = () => {
   return (
     <div className="flex h-[100dvh] w-full">
       <OpenNavigation />
-      <div className="lg:p-4 flex w-full h-full bg-white dark:bg-black">
+      <div className="lg:p-2 flex w-full h-full bg-white dark:bg-black">
         <div className="dark:bg-stone-950 bg-stone-25 lg:border w-full flex justify-center border-stone-200 dark:border-stone-800 rounded-md">
           <div
             className={cn(

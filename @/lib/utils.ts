@@ -318,7 +318,7 @@ export const validateJSON = (
     JSON.parse(jsonString);
     return { isValid: true, error: null };
   } catch (e) {
-    console.error(jsonString, e)
+    console.error(jsonString, e);
     if (e instanceof SyntaxError) {
       const errorMessage = e.message;
       if (errorMessage.includes("Unexpected token")) {
@@ -373,12 +373,6 @@ export const generateFillSequence = (
 
   const patternLength = sourceData.length;
   const fillLength = fillRange.end.row - fillRange.start.row; // Adjusted to avoid overlap
-  console.log({
-    patternLength,
-    fillLength,
-    sourceData,
-  });
-
   for (let i = 0; i < fillLength; i++) {
     const sourceIndex = i % patternLength;
     const [sourceCol, sourceRow] = sourceKeys[sourceIndex]
@@ -389,18 +383,13 @@ export const generateFillSequence = (
 
     const originalCell = dataToFill[sourceKeys[sourceIndex]];
 
-    let formula: string | undefined = undefined;
-    if (originalCell.formula) {
-      formula = adjustFormula(originalCell.formula, targetRow - sourceRow);
-    }
-
     const value = originalCell.formula
-      ? "rerun the cell"
+      ? adjustFormula(originalCell.formula, targetRow - sourceRow)
       : extendSequence(sourceData, i + patternLength, targetRow - sourceRow); // i +1 for correct step
 
     filledData[targetKey] = {
       value,
-      formula,
+      formula: undefined,
       display: originalCell.display || "hide",
     };
   }
@@ -543,4 +532,42 @@ export function getCellsForRow(
   });
 
   return rowCells;
+}
+
+export function deepMerge<T extends Record<string, any>>(
+  target: T,
+  source: Partial<T>
+): T {
+  const result = { ...target };
+
+  for (const key in source) {
+    if (Object.prototype.hasOwnProperty.call(source, key)) {
+      const sourceValue = source[key];
+      const targetValue = result[key];
+
+      // Check if the source value is a Promise
+      if (isPromise(sourceValue)) {
+        result[key] = sourceValue;
+      }
+      // If both target and source values are objects, merge them recursively
+      else if (
+        typeof sourceValue === "object" &&
+        sourceValue !== null &&
+        !Array.isArray(sourceValue)
+      ) {
+        result[key] = deepMerge(
+          targetValue && typeof targetValue === "object" ? targetValue : {},
+          sourceValue
+        );
+      } else {
+        result[key] = sourceValue;
+      }
+    }
+  }
+
+  return result;
+}
+
+function isPromise(value: any): value is Promise<any> {
+  return Boolean(value) && typeof value.then === "function";
 }

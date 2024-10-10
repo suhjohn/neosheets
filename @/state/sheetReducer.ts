@@ -10,17 +10,24 @@ import {
   DEFAULT_LINE_HEIGHT,
   DEFAULT_ROW_COUNT,
 } from "@/constants";
+import { DomainSetting } from "@/types/domain";
 import { SecretKeys } from "@/types/secret";
 import {
-  InsertColumnPayload, SheetAction,
+  InsertColumnPayload,
+  SheetAction,
   type CellState,
   type CellStates,
   type ColumnState,
   type FunctionBindingsWithFunctionsType,
   type RowState,
-  type SheetState
+  type SheetState,
 } from "@/types/sheet"; // Ensure PERFORM_AUTOFILL is imported
-import { calculateTextHeight, generateExcelHeaders, generateFillSequence } from "../lib/utils";
+import {
+  calculateTextHeight,
+  deepMerge,
+  generateExcelHeaders,
+  generateFillSequence,
+} from "../lib/utils";
 import { handleSelectedToEditing } from "./common";
 import {
   handleClear,
@@ -28,7 +35,7 @@ import {
   handlePaste,
   handleTableKeyboardEvent,
 } from "./keyboard";
-import { handleFormulaUpdate, handleValueUpdate } from "./update";
+import { handleCellUpdate } from "./update";
 
 const DEFAULT_CELL_STATE: CellState = {
   value: "",
@@ -70,7 +77,8 @@ export const applyAction = (
   state: SheetState,
   action: SheetAction,
   functionBindings?: FunctionBindingsWithFunctionsType,
-  secretKeys?: SecretKeys
+  secretKeys?: SecretKeys,
+  domainSettings?: DomainSetting[]
 ): SheetState => {
   switch (action.type) {
     case "SET_CELLS": {
@@ -181,43 +189,20 @@ export const applyAction = (
       };
     }
     case "HANDLE_UPDATE_CELL": {
-      const { value } = action.payload;
-      if (value.startsWith("=")) {
-        if (!functionBindings) {
-          throw new Error(
-            "Function bindings are required to handle formula updates"
-          );
-        }
-        if (!secretKeys) {
-          throw new Error("Secret keys are required to handle formula updates");
-        }
-        const res = handleFormulaUpdate({
-          state,
-          payload: action.payload,
-          functionBindings,
-          secretKeys,
-        });
-        const combinedPromises = {
-          ...(state.promises ?? {}),
-          ...(res.promises ?? {}),
-        };
-        return {
-          ...res,
-          promises: combinedPromises,
-          showClipboard: false,
-        };
-      }
-      return {
-        ...handleValueUpdate(state, action.payload),
-        showClipboard: false,
-      };
+      return handleCellUpdate({
+        state,
+        payload: action.payload,
+        functionBindings,
+        secretKeys,
+        domainSettings,
+      });
     }
     case "HANDLE_UPDATE_CELL_RANGE": {
       const { range, value, display } = action.payload;
       const { start, end } = range;
 
       // Clone cellStates and rowStates to maintain immutability
-      const newCellStates = state.cellStates.map(column => ({ ...column }));
+      const newCellStates = state.cellStates.map((column) => ({ ...column }));
       const newRowStates = { ...state.rowStates };
 
       // Precompute font and dimensions to avoid recalculating inside loops
@@ -229,7 +214,8 @@ export const applyAction = (
         for (let col = start.col; col <= end.col; col++) {
           const existingCell = state.cellStates[col]?.[row];
           const displayMode = display || existingCell?.display || "hide";
-          const newValue = value !== undefined ? value : existingCell?.value || "";
+          const newValue =
+            value !== undefined ? value : existingCell?.value || "";
 
           // Update the cell state
           newCellStates[col][row] = {
@@ -239,7 +225,8 @@ export const applyAction = (
           };
 
           // Calculate the height for the updated cell
-          const cellWidth = state.headerStates[col].width -
+          const cellWidth =
+            state.headerStates[col].width -
             DEFAULT_CELL_BORDER_WIDTH * 4 -
             DEFAULT_CELL_PADDING * 4;
 
@@ -260,7 +247,8 @@ export const applyAction = (
           if (col < start.col || col > end.col) {
             const cell = state.cellStates[col]?.[row];
             if (cell) {
-              const cellWidth = state.headerStates[col].width -
+              const cellWidth =
+                state.headerStates[col].width -
                 DEFAULT_CELL_BORDER_WIDTH * 4 -
                 DEFAULT_CELL_PADDING * 4;
 
@@ -360,7 +348,10 @@ export const applyAction = (
 
       // Adjust selected positions
       let updatedSelectedCellPosition = state.selectedCellPosition;
-      if (state.selectedCellPosition && state.selectedCellPosition.row >= rowIndex) {
+      if (
+        state.selectedCellPosition &&
+        state.selectedCellPosition.row >= rowIndex
+      ) {
         updatedSelectedCellPosition = {
           ...state.selectedCellPosition,
           row: state.selectedCellPosition.row + 1,
@@ -370,7 +361,8 @@ export const applyAction = (
       let updatedSelectedCellRange = state.selectedCellRange;
       if (state.selectedCellRange) {
         const { start, end } = state.selectedCellRange;
-        const newStart = start.row >= rowIndex ? { ...start, row: start.row + 1 } : start;
+        const newStart =
+          start.row >= rowIndex ? { ...start, row: start.row + 1 } : start;
         const newEnd = end.row >= rowIndex ? { ...end, row: end.row + 1 } : end;
         updatedSelectedCellRange = { start: newStart, end: newEnd };
       }
@@ -427,8 +419,13 @@ export const applyAction = (
 
       // Adjust selected positions
       let updatedSelectedCellPosition = state.selectedCellPosition;
-      if (state.selectedCellPosition && state.selectedCellPosition.row >= rowsToDelete[0]) {
-        const offset = rowsToDelete.filter(row => row <= state.selectedCellPosition!.row).length;
+      if (
+        state.selectedCellPosition &&
+        state.selectedCellPosition.row >= rowsToDelete[0]
+      ) {
+        const offset = rowsToDelete.filter(
+          (row) => row <= state.selectedCellPosition!.row
+        ).length;
         updatedSelectedCellPosition = {
           ...state.selectedCellPosition,
           row: state.selectedCellPosition.row - offset,
@@ -438,13 +435,17 @@ export const applyAction = (
       let updatedSelectedCellRange = state.selectedCellRange;
       if (state.selectedCellRange) {
         const { start, end } = state.selectedCellRange;
-        const deletedCount = rowsToDelete.filter(row => row <= end.row).length;
-        const newStart = start.row > rowsToDelete[rowsToDelete.length - 1]
-          ? { ...start, row: start.row - deletedCount }
-          : start;
-        const newEnd = end.row > rowsToDelete[rowsToDelete.length - 1]
-          ? { ...end, row: end.row - deletedCount }
-          : end;
+        const deletedCount = rowsToDelete.filter(
+          (row) => row <= end.row
+        ).length;
+        const newStart =
+          start.row > rowsToDelete[rowsToDelete.length - 1]
+            ? { ...start, row: start.row - deletedCount }
+            : start;
+        const newEnd =
+          end.row > rowsToDelete[rowsToDelete.length - 1]
+            ? { ...end, row: end.row - deletedCount }
+            : end;
         updatedSelectedCellRange = { start: newStart, end: newEnd };
       }
 
@@ -590,7 +591,8 @@ export const applyAction = (
           newState,
           insertRowAction,
           functionBindings,
-          secretKeys
+          secretKeys,
+          domainSettings
         );
       }
 
@@ -609,7 +611,8 @@ export const applyAction = (
         state,
         inverseAction,
         functionBindings,
-        secretKeys
+        secretKeys,
+        domainSettings
       );
       return {
         ...newState,
@@ -630,7 +633,8 @@ export const applyAction = (
         state,
         redoAction,
         functionBindings,
-        secretKeys
+        secretKeys,
+        domainSettings
       );
       return {
         ...newState,
@@ -672,7 +676,11 @@ export const applyAction = (
       const dataToFill: { [key: string]: CellState } = {};
 
       for (let col = sourceRange.start.col; col <= sourceRange.end.col; col++) {
-        for (let row = sourceRange.start.row; row <= sourceRange.end.row; row++) {
+        for (
+          let row = sourceRange.start.row;
+          row <= sourceRange.end.row;
+          row++
+        ) {
           const key = `${col}-${row}`;
           const cellState = state.cellStates[col]?.[row];
           if (cellState) {
@@ -685,7 +693,7 @@ export const applyAction = (
       const filledData = generateFillSequence(dataToFill, fillRange);
 
       // Update cellStates and rowStates
-      const newCellStates: SheetState['cellStates'] = [...state.cellStates];
+      const newCellStates: SheetState["cellStates"] = [...state.cellStates];
       const newRowStates = { ...state.rowStates };
 
       Object.entries(filledData).forEach(([key, cellState]) => {
@@ -718,13 +726,40 @@ export const applyAction = (
           height: Math.max(height, DEFAULT_CELL_HEIGHT),
         };
       });
-
-      return {
+      let newState = {
         ...state,
         cellStates: newCellStates,
         rowStates: newRowStates,
-        autofillTarget: null, // Reset autofill target after completion
+        autofillTarget: null,
       };
+      Object.entries(filledData).forEach(([key, cellState]) => {
+        const [colStr, rowStr] = key.split("-");
+        const col = parseInt(colStr, 10);
+        const row = parseInt(rowStr, 10);
+        const res = handleCellUpdate({
+          state: newState,
+          payload: {
+            row,
+            col,
+            value: cellState.value,
+            display: cellState.display,
+          },
+          functionBindings,
+          secretKeys,
+          domainSettings,
+        });
+        const combinedPromises = deepMerge(
+          newState.promises ?? {},
+          res.promises ?? {}
+        );
+        newState = {
+          ...res,
+          promises: combinedPromises,
+          showClipboard: false,
+          autofillTarget: null,
+        };
+      });
+      return newState;
     }
     case "IMPORT_CSV": {
       const csvData = action.payload;
@@ -763,7 +798,10 @@ export const applyAction = (
       });
 
       // Update column count if CSV has more columns than current state
-      const newColumnCount = Math.max(state.headerStates.length, csvData[0]?.length || 0);
+      const newColumnCount = Math.max(
+        state.headerStates.length,
+        csvData[0]?.length || 0
+      );
 
       // Add new header states if needed
       const newHeaderStates = [...state.headerStates];
@@ -777,7 +815,10 @@ export const applyAction = (
 
       // Adjust selected positions if necessary
       let updatedSelectedCellPosition = state.selectedCellPosition;
-      if (state.selectedCellPosition && state.selectedCellPosition.row >= updatedRowCount) {
+      if (
+        state.selectedCellPosition &&
+        state.selectedCellPosition.row >= updatedRowCount
+      ) {
         updatedSelectedCellPosition = {
           ...state.selectedCellPosition,
           row: updatedRowCount - 1,

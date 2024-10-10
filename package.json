@@ -53,6 +53,7 @@
     "@uiw/codemirror-theme-vscode": "^4.23.0",
     "@uiw/codemirror-theme-xcode": "^4.23.0",
     "@uiw/react-codemirror": "^4.23.0",
+    "async-mutex": "^0.5.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "cmdk": "1.0.0",

@@ -9,7 +9,8 @@ import {
 } from "@/constants";
 import { generateFunctionBody } from "@/lib/llm";
 import { updateCellFormula } from "@/lib/table/formula";
-import { calculateTextHeight } from "@/lib/utils";
+import { calculateTextHeight, deepMerge } from "@/lib/utils";
+import { DomainSetting } from "@/types/domain";
 import { Resource } from "@/types/resource";
 import { SecretKeys } from "@/types/secret";
 import {
@@ -53,13 +54,13 @@ export const handleValueUpdate = (
     cellStates: state.cellStates.map((column, colIndex) =>
       colIndex === col
         ? {
-            ...column,
-            [row]: {
-              ...(state.cellStates[colIndex][row] ?? {}),
-              value: value,
-              display: displayMode,
-            },
-          }
+          ...column,
+          [row]: {
+            ...(state.cellStates[colIndex][row] ?? {}),
+            value: value,
+            display: displayMode,
+          },
+        }
         : column
     ),
     rowStates: {
@@ -111,11 +112,13 @@ export const handleFormulaUpdate = ({
   payload,
   functionBindings,
   secretKeys,
+  domainSettings,
 }: {
   state: SheetState;
   payload: UpdateCellArgsType;
   functionBindings: FunctionBindingsWithFunctionsType;
   secretKeys: SecretKeys;
+  domainSettings?: DomainSetting[];
 }) => {
   const { row, col, value, display } = payload;
   const transformedFunctionBindings = transformFunctionBindings({
@@ -128,6 +131,7 @@ export const handleFormulaUpdate = ({
     rowIndex: row,
     newFormula: value,
     functionBindings: transformedFunctionBindings,
+    domainSettings,
     display,
   });
   return {
@@ -135,6 +139,56 @@ export const handleFormulaUpdate = ({
     editingValue: "",
     editingCellPosition: null,
     cellStates,
-    promises
+    promises,
+  };
+};
+
+export const handleCellUpdate = ({
+  state,
+  payload,
+  functionBindings,
+  secretKeys,
+  domainSettings,
+}: {
+  state: SheetState;
+  payload: UpdateCellArgsType;
+  functionBindings?: FunctionBindingsWithFunctionsType;
+  secretKeys?: SecretKeys;
+  domainSettings?: DomainSetting[];
+}) => {
+  if (payload.value.startsWith("=")) {
+    if (!functionBindings) {
+      throw new Error(
+        "Formula bindings are required to handle formula updates"
+      );
+    }
+    if (!secretKeys) {
+      throw new Error("Secret keys are required to handle formula updates");
+    }
+    const res = handleFormulaUpdate({
+      state,
+      payload: payload,
+      functionBindings,
+      secretKeys,
+      domainSettings,
+    });
+    const combinedPromises = deepMerge(
+      state.promises ?? {},
+      res.promises ?? {}
+    );
+    console.log({
+      combinedPromises,
+      statePromises: state.promises,
+      resPromises: res.promises,
+    })
+    return {
+      ...res,
+      promises: combinedPromises,
+      showClipboard: false,
+    };
+  }
+  return {
+    ...handleValueUpdate(state, payload),
+    showClipboard: false,
   };
 };

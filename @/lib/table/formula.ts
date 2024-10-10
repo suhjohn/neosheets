@@ -1,4 +1,5 @@
 import { type FunctionBindingsType } from "@/types/ast";
+import { DomainSetting } from "@/types/domain";
 import {
   cellAddressToString,
   type CellState,
@@ -17,6 +18,7 @@ export const updateCellFormula = ({
   rowIndex,
   newFormula,
   functionBindings,
+  domainSettings,
   display = "hide",
 }: {
   prevData: CellStates[];
@@ -24,6 +26,7 @@ export const updateCellFormula = ({
   rowIndex: number;
   newFormula: string;
   functionBindings: FunctionBindingsType;
+  domainSettings?: DomainSetting[];
   display?: "wrap" | "hide";
 }) => {
   const newData = [...prevData];
@@ -79,6 +82,7 @@ export const updateCellFormula = ({
         row: rowIndex,
       },
       functionBindings,
+      domainSettings,
     });
     if (newValue instanceof Promise) {
       newData[colIndex][rowIndex] = {

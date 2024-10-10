@@ -221,9 +221,9 @@ export const CreateFunctionDialog: FC = () => {
                 "bg-white dark:bg-stone-950 z-10"
               )}
             >
-              <p className="text-xsm">New Function</p>
+              <p className="text-xsm">New Formula</p>
               <TabsList>
-                <TabsTrigger value="function">Function</TabsTrigger>
+                <TabsTrigger value="function">Formula</TabsTrigger>
                 <TabsTrigger value="llm">Prompt</TabsTrigger>
               </TabsList>
               <div className="flex">
@@ -251,19 +251,19 @@ export const CreateFunctionDialog: FC = () => {
             >
               <Input
                 id="name"
-                placeholder="Function Name"
+                placeholder="Formula Name"
                 type="text"
                 value={newFunction.functionName}
                 onChange={(e) => {
                   const value = e.target.value;
                   setNewFunction({
                     ...newFunction,
-                    functionName: value,
+                    functionName: value.toUpperCase(),
                   });
                   // Validation
                   const valid = /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value);
                   if (value.trim() === "") {
-                    setFunctionNameError("Function name is required.");
+                    setFunctionNameError("Formula name is required.");
                   } else if (!valid) {
                     setFunctionNameError(
                       "Only alphanumeric and underscores. Cannot start with a number."
@@ -441,7 +441,7 @@ export const CreateFunctionDialog: FC = () => {
             <DialogFooter className="border-t border-stone-200 dark:border-stone-800 p-4">
               <div className="flex justify-end">
                 <Button onClick={handleCreate} disabled={!isFormValid}>
-                  Create Function
+                  Create Formula
                 </Button>
               </div>
             </DialogFooter>

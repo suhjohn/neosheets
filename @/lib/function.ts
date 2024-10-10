@@ -7,7 +7,7 @@ export const validateFunction = (code: string) => {
   const runFunction = analysis.find((f) => f.name === "run");
   if (!runFunction) {
     throw new Error(
-      "Function must contain a function named 'run'. 'run' should be the entrypoint."
+      "Formula must contain a function named 'run'. 'run' should be the entrypoint."
     );
   }
 };
@@ -17,7 +17,7 @@ export const getRunFunction = (code: string) => {
   const runFunction = analysis.find((f) => f.name === "run");
   if (!runFunction) {
     throw new Error(
-      "Function must contain a function named 'run'. 'run' should be the entrypoint."
+      "Formula must contain a function named 'run'. 'run' should be the entrypoint."
     );
   }
   return runFunction;

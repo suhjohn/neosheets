@@ -1,4 +1,5 @@
 // @/store/useSheetStore.ts
+import { useDomainSettings } from "@/hooks/useDomain";
 import { useFunctionBindings } from "@/hooks/useFunctionBindings";
 import { useSecretKeys } from "@/hooks/useSecretKeys";
 import { updateSheet } from "@/hooks/useSpreadsheetes";
@@ -8,6 +9,7 @@ import {
   initialState,
 } from "@/state/sheetReducer";
 import { handleValueUpdate } from "@/state/update";
+import { DomainSetting } from "@/types/domain";
 import { SecretKeys } from "@/types/secret";
 import {
   SheetAction,
@@ -27,7 +29,8 @@ interface SheetStateStore {
   dispatch: (
     action: SheetAction,
     functionBindings?: FunctionBindingsWithFunctionsType,
-    secretKeys?: SecretKeys
+    secretKeys?: SecretKeys,
+    domainSettings?: DomainSetting[]
   ) => SheetState;
   currentSheetId: string;
   setCurrentSheetId: (id: string) => void;
@@ -54,9 +57,9 @@ export const createSheetStateStore = (
         },
         currentSheetState: seletedSheet ||
           initialSpreadsheet.sheets[0] || {
-          ...initialState,
-          id: sheetId || v4(),
-        },
+            ...initialState,
+            id: sheetId || v4(),
+          },
         currentSheetId: sheetId || initialSpreadsheet.sheets[0]?.id || v4(),
         setCurrentSheetId: (id: string) => {
           const sheet = get().spreadsheet.sheets.find((s) => s.id === id);
@@ -71,7 +74,8 @@ export const createSheetStateStore = (
         dispatch: (
           action: SheetAction,
           functionBindings?: FunctionBindingsWithFunctionsType,
-          secretKeys?: SecretKeys
+          secretKeys?: SecretKeys,
+          domainSettings?: DomainSetting[]
         ) => {
           const { currentSheetState } = get();
           // Record inverse action
@@ -80,7 +84,8 @@ export const createSheetStateStore = (
             currentSheetState,
             action,
             functionBindings,
-            secretKeys
+            secretKeys,
+            domainSettings
           );
           const newUndoStack = [...(newState.undoStack ?? [])];
           if (inverseAction) {
@@ -125,16 +130,19 @@ const handlePromises = (
     Object.entries(rows).forEach(([rowStr, promise]) => {
       const rowIndex = parseInt(rowStr, 10);
       const promiseKey = `${colIndex}-${rowIndex}`;
-
       if (promise instanceof Promise && !get().activePromises.has(promiseKey)) {
-        get().activePromises.add(promiseKey);
+        set({
+          activePromises: new Set([...get().activePromises, promiseKey]),
+        });
         promise
           .then((value) => {
+            console.log("Promise resolved", value);
             const updatedState = handleValueUpdate(get().currentSheetState, {
               col: colIndex,
               row: rowIndex,
               value: typeof value === "object" ? JSON.stringify(value) : value,
-              display: get().currentSheetState.cellStates[colIndex][rowIndex].display,
+              display:
+                get().currentSheetState.cellStates[colIndex][rowIndex].display,
             });
 
             updatedState.cellStates[colIndex][rowIndex] = {
@@ -143,7 +151,7 @@ const handlePromises = (
             };
             const newPromises = {
               ...promises,
-            }
+            };
             delete newPromises[colIndex][rowIndex];
             set({
               currentSheetState: {
@@ -169,7 +177,8 @@ const handlePromises = (
               col: colIndex,
               row: rowIndex,
               value: "#ERROR",
-              display: get().currentSheetState.cellStates[colIndex][rowIndex].display,
+              display:
+                get().currentSheetState.cellStates[colIndex][rowIndex].display,
             });
 
             updatedState.cellStates[colIndex][rowIndex] = {
@@ -181,7 +190,7 @@ const handlePromises = (
             console.error(error);
             const newPromises = {
               ...promises,
-            }
+            };
             delete newPromises[colIndex][rowIndex];
 
             set({
@@ -210,6 +219,7 @@ const handlePromises = (
 
 export const useDispatch = (spreadsheetId: string) => {
   const { data: functionBindings } = useFunctionBindings(spreadsheetId);
+  const { data: domainSettings } = useDomainSettings();
   const { data: secretKeys } = useSecretKeys();
   const sheetStateStore = useContext(SheetStateContext);
   if (!sheetStateStore) {
@@ -221,10 +231,15 @@ export const useDispatch = (spreadsheetId: string) => {
   );
   const dispatch = useCallback(
     (action: SheetAction) => {
-      const newState = dispatchFunction(action, functionBindings, secretKeys);
+      const newState = dispatchFunction(
+        action,
+        functionBindings,
+        secretKeys,
+        domainSettings
+      );
       return newState;
     },
-    [dispatchFunction, functionBindings, secretKeys]
+    [dispatchFunction, functionBindings, secretKeys, domainSettings]
   );
   return dispatch;
 };

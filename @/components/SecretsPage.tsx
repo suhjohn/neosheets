@@ -75,9 +75,10 @@ export const SecretsPage: FC = () => {
           <div className="flex flex-col gap-4">
             <h1 className="text-2xl">Secrets</h1>
             <p className="text-sm text-gray-500">
-              Secrets are values that you use in your functions to access
-              external services. We define a set of standard secrets that are
-              available to all functions. You can also define your own secrets.
+              Secrets are secret values that you want to define outside of your
+              formulas to access external services. We define a set of standard
+              secrets that are available to all functions. You can also define
+              your own secrets.
             </p>
             {fields.map((field) => (
               <div key={field.name} className="grid grid-cols-7 gap-2">
@@ -124,7 +125,7 @@ export const SecretsPage: FC = () => {
             <div className="grid grid-cols-7 gap-2">
               <Input
                 className="col-span-3"
-                placeholder="VARIABLE_NAME"
+                placeholder="SECRET_NAME"
                 value={newKey}
                 onChange={(e) => setNewKey(e.target.value)}
               />

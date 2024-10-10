@@ -165,7 +165,7 @@ export const FunctionBindingsDialog: FC<FunctionBindingsDialogProps> = ({
             </DialogTrigger>
           </TooltipTrigger>
           <TooltipContent>
-            <p className="text-xs">Bind functions</p>
+            <p className="text-xs">Bind formula</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -174,7 +174,7 @@ export const FunctionBindingsDialog: FC<FunctionBindingsDialogProps> = ({
           <>
             <DialogHeader className="sticky top-0 bg-white dark:bg-stone-950">
               <div className="flex justify-between items-center">
-                <DialogTitle>Function Bindings</DialogTitle>
+                <DialogTitle>Formula Bindings</DialogTitle>
                 <div className="flex items-center h-auto">
                   {isSaved && (
                     <p className="text-xs font-medium mr-8 text-stone-500">
@@ -185,10 +185,10 @@ export const FunctionBindingsDialog: FC<FunctionBindingsDialogProps> = ({
                 </div>
               </div>
               <DialogDescription className="text-xsm">
-                Customize the functions available in this sheet by binding a
-                name to the specific implementation of a function. You can map
-                the default names to custom functions or create a new binding
-                and map it to a custom function.
+                Customize the formula available in this sheet by binding a
+                name to the specific implementation of a formula. You can map
+                the default names to custom formulas or create a new binding
+                and map it to a custom formula.
               </DialogDescription>
             </DialogHeader>
             <div className="max-w-screen-lg flex flex-col overflow-y-auto gap-2">
@@ -326,7 +326,7 @@ export const FunctionBindingsDialog: FC<FunctionBindingsDialogProps> = ({
                             }
                             return value;
                           }}
-                          placeholder="Function name"
+                          placeholder="Formula name"
                         />
                       </div>
                       {/** Function selector */}

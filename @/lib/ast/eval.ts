@@ -1,10 +1,14 @@
 // eval.ts
 import { type ASTNode, type FunctionBindingsType } from "@/types/ast";
+import { DomainSetting } from "@/types/domain";
 import {
   cellAddressToString,
   type CellAddress,
   type CellStates,
 } from "@/types/sheet";
+import { Mutex, Semaphore } from "async-mutex";
+import { SEMAPHORE_MAP } from "../semaphore";
+
 import { tokenize } from "./lexer";
 import { parse } from "./parser";
 
@@ -18,13 +22,23 @@ export class CircularDependencyError extends Error {
   }
 }
 
-function evaluateAst(
-  ast: ASTNode,
-  data: CellStates[],
-  currentCell: CellAddress,
-  evaluationChain: Set<string>,
-  functionBindings: FunctionBindingsType
-): string | number | string[] | number[] | (string | number)[] | object {
+const semaphoreMutex = new Mutex();
+
+function evaluateAst({
+  ast,
+  data,
+  currentCell,
+  evaluationChain,
+  functionBindings,
+  domainSettings,
+}: {
+  ast: ASTNode;
+  data: CellStates[];
+  currentCell: CellAddress;
+  evaluationChain: Set<string>;
+  functionBindings: FunctionBindingsType;
+  domainSettings?: DomainSetting[];
+}): string | number | string[] | number[] | (string | number)[] | object {
   switch (ast.type) {
     case "Number":
       return ast.value;
@@ -66,20 +80,20 @@ function evaluateAst(
       return values;
     }
     case "BinaryOperation": {
-      const left = evaluateAst(
-        ast.left,
+      const left = evaluateAst({
+        ast: ast.left,
         data,
         currentCell,
         evaluationChain,
-        functionBindings
-      ) as number;
-      const right = evaluateAst(
-        ast.right,
+        functionBindings,
+      }) as number;
+      const right = evaluateAst({
+        ast: ast.right,
         data,
         currentCell,
         evaluationChain,
-        functionBindings
-      ) as number;
+        functionBindings,
+      }) as number;
       switch (ast.operator) {
         case "+":
           return left + right;
@@ -95,18 +109,28 @@ function evaluateAst(
     }
     case "Function": {
       const args = ast.arguments.map((arg) =>
-        evaluateAst(arg, data, currentCell, evaluationChain, functionBindings)
+        evaluateAst({
+          ast: arg,
+          data,
+          currentCell,
+          evaluationChain,
+          functionBindings,
+        })
       );
       const functionObj = functionBindings[ast.name.toUpperCase()];
       if (!functionObj) {
-        throw new Error(`Function ${ast.name} not found`);
+        throw new Error(`Formula ${ast.name} not found`);
       }
       const { functionBody } = functionObj;
       const transpiledCode = ts.transpile(`${functionBody}`);
 
       // Prepare the argument string for eval with proper serialization
       let argString: string;
-      if (args.length === 1 && typeof args[0] === "object" && !Array.isArray(args[0])) {
+      if (
+        args.length === 1 &&
+        typeof args[0] === "object" &&
+        !Array.isArray(args[0])
+      ) {
         // If the argument is a single object, stringify it
         argString = JSON.stringify(args[0]);
       } else {
@@ -123,22 +147,50 @@ function evaluateAst(
           })
           .join(", ");
       }
+      // TODO - implement whitelist domain
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const customFetch = async (url: any, options: any) => {
+        const parsedUrl = new URL(url);
+        const domainSetting = domainSettings?.find((setting) =>
+          parsedUrl.href.includes(setting.path)
+        );
+        if (!domainSetting) {
+          throw new Error(`Domain not whitelisted: ${parsedUrl.href}`);
+        }
+        // Acquire the mutex before accessing SEMAPHORE_MAP
+        const semaphore = await semaphoreMutex.runExclusive(() => {
+          let sem = SEMAPHORE_MAP.get(domainSetting.path);
+          if (!sem) {
+            sem = new Semaphore(domainSetting.parallelism);
+            SEMAPHORE_MAP.set(domainSetting.path, sem);
+          }
+          return sem;
+        });
 
-      console.log(argString);
-      // Adjust the function call accordingly
-      const res = new Function(`${transpiledCode};\nreturn run(${argString});`)();
+        // Use the semaphore as before
+        await semaphore.acquire();
+        try {
+          return await fetch(url, options);
+        } finally {
+          semaphore.release();
+        }
+      };
+      const res = new Function(
+        "fetch",
+        `${transpiledCode};\nreturn run(${argString});`
+      )(customFetch);
       return res;
     }
     case "ObjectLiteral": {
       const obj: { [key: string]: unknown } = {};
       for (const { key, value } of ast.properties) {
-        obj[key] = evaluateAst(
-          value,
+        obj[key] = evaluateAst({
+          ast: value,
           data,
           currentCell,
           evaluationChain,
-          functionBindings
-        ) as string | number | string[] | number[] | (string | number)[];
+          functionBindings,
+        }) as string | number | string[] | number[] | (string | number)[];
       }
       return obj;
     }
@@ -152,12 +204,14 @@ export function evaluateFormula({
   data,
   currentCell,
   functionBindings,
+  domainSettings,
   evaluationChain = new Set<string>(),
 }: {
   formula: string;
   data: CellStates[];
   currentCell: CellAddress;
   functionBindings: FunctionBindingsType;
+  domainSettings?: DomainSetting[];
   evaluationChain?: Set<string>;
 }): string | number | string[] | number[] | (string | number)[] | object {
   if (!formula.startsWith("=")) return formula;
@@ -173,7 +227,14 @@ export function evaluateFormula({
     functionBindings,
   });
   const ast = parse(tokens);
-  return evaluateAst(ast, data, currentCell, evaluationChain, functionBindings);
+  return evaluateAst({
+    ast,
+    data,
+    currentCell,
+    evaluationChain,
+    functionBindings,
+    domainSettings,
+  });
 }
 
 export function getCellDependencies({

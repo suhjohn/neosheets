@@ -60,7 +60,7 @@ export default function NewFunctionPage() {
         <div className="flex flex-col max-w-screen-md w-full">
           {/** Header */}
           <div className="w-full flex justify-between">
-            <h1 className="text-xl font-medium">Create New Function</h1>
+            <h1 className="text-xl font-medium">Create New Formula</h1>
             <Button variant={"default"} onClick={handleCreateFunction}>
               Create
             </Button>
@@ -68,7 +68,7 @@ export default function NewFunctionPage() {
           {/** Form */}
           <div className="flex flex-col gap-4 mt-4">
             <LabeledInput
-              label="Function Name"
+              label="Formula Name"
               value={functionState.functionName}
               onChange={(value) =>
                 setFunctionState({ ...functionState, functionName: value })

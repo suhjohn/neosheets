@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { Link, useLocation } from "@remix-run/react";
 import { KeyRound, SidebarIcon, Table2 } from "lucide-react";
 import { type FC } from "react";
+import { GrDomain } from "react-icons/gr";
 import { IoLogoGithub } from "react-icons/io";
 import { TbLambda } from "react-icons/tb";
 import { ThemeToggle } from "./ThemeToggle";
@@ -25,7 +26,10 @@ const NavigationContent = () => {
   return (
     <div className="flex flex-col h-full gap-4 px-2">
       <div className="flex items-center justify-between px-2">
-        <Link to="/spreadsheet" className="font-bold flex space-x-2 items-center">
+        <Link
+          to="/spreadsheet"
+          className="font-bold flex space-x-2 items-center"
+        >
           <p className={cn("text-black dark:text-white rounded-md font-mono")}>
             neosheets
           </p>
@@ -81,7 +85,7 @@ const NavigationContent = () => {
                   : "text-stone-600 dark:text-stone-400"
               }
             />
-            <p>Function</p>
+            <p>Formula</p>
           </Link>
         </Button>
         <Button
@@ -108,6 +112,32 @@ const NavigationContent = () => {
               }
             />
             <p>Secrets</p>
+          </Link>
+        </Button>
+        <Button
+          variant={isActive("/domain") ? "selected" : "ghost"}
+          className="w-full justify-start px-2 py-2 h-8"
+          asChild
+        >
+          <Link
+            to="/domain"
+            className={cn(
+              "w-full flex space-x-2 items-center",
+              "text-left",
+              isActive("/domain")
+                ? "font-semibold"
+                : "text-stone-800 dark:text-stone-200"
+            )}
+          >
+            <GrDomain
+              size={16}
+              className={
+                isActive("/domain")
+                  ? "text-primary"
+                  : "text-stone-600 dark:text-stone-400"
+              }
+            />
+            <p>Domain settings</p>
           </Link>
         </Button>
       </nav>
@@ -159,7 +189,7 @@ export const DrawerNavigation: FC<DrawerSideNavigationProps> = ({
 );
 
 export const OpenNavigation: FC = () => (
-  <div className="hidden lg:block h-screen text-stone-200 flex-shrink-0 pt-4 w-60 dark:bg-black border-r border-r-stone-200 dark:border-r-stone-800">
+  <div className="hidden lg:block h-screen text-stone-200 flex-shrink-0 pt-4 w-60 dark:bg-black">
     <NavigationContent />
   </div>
 );
@@ -187,7 +217,10 @@ export const ClosedNavigation: FC = () => {
     >
       <nav className="flex flex-col items-center gap-4">
         <div className="flex items-center justify-between px-2">
-          <Link to="/spreadsheet" className="font-bold flex space-x-2 items-center">
+          <Link
+            to="/spreadsheet"
+            className="font-bold flex space-x-2 items-center"
+          >
             <p
               className={cn("text-black dark:text-white rounded-md font-mono")}
             >
@@ -198,7 +231,7 @@ export const ClosedNavigation: FC = () => {
         <div className="flex flex-col">
           <Button
             variant={isActive("/table") ? "selected" : "ghost"}
-            className="w-full h-10"
+            className="w-full h-8"
             asChild
           >
             <Link
@@ -223,7 +256,7 @@ export const ClosedNavigation: FC = () => {
           </Button>
           <Button
             variant={isActive("/function") ? "selected" : "ghost"}
-            className="w-full h-10"
+            className="w-full h-8"
             asChild
           >
             <Link
@@ -248,7 +281,7 @@ export const ClosedNavigation: FC = () => {
           </Button>
           <Button
             variant={isActive("/secrets") ? "selected" : "ghost"}
-            className="w-full h-10"
+            className="w-full h-8"
             asChild
           >
             <Link
@@ -265,6 +298,31 @@ export const ClosedNavigation: FC = () => {
                 size={16}
                 className={
                   isActive("/secrets")
+                    ? "text-primary"
+                    : "text-stone-600 dark:text-stone-400"
+                }
+              />
+            </Link>
+          </Button>
+          <Button
+            variant={isActive("/domain") ? "selected" : "ghost"}
+            className="w-full h-8"
+            asChild
+          >
+            <Link
+              to="/domain"
+              className={cn(
+                "w-full flex space-x-2 items-center",
+                "text-left",
+                isActive("/domain")
+                  ? "font-semibold"
+                  : "text-stone-800 dark:text-stone-200"
+              )}
+            >
+              <GrDomain
+                size={16}
+                className={
+                  isActive("/domain")
                     ? "text-primary"
                     : "text-stone-600 dark:text-stone-400"
                 }

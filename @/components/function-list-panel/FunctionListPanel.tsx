@@ -33,7 +33,7 @@ export const FunctionListPanel: FC<FunctionListPanelProps> = ({
         <div className="flex-col border-b border-stone-200 dark:border-stone-800">
           <div className="flex h-10 w-full p-2 items-center">
             <div className="flex gap-1 items-center">
-              <p className="text-xsm">{`Functions`}</p>
+              <p className="text-xsm">{`Formulas`}</p>
             </div>
             {showCreateFunctionButton && <CreateFunctionDialog />}
           </div>
@@ -43,7 +43,7 @@ export const FunctionListPanel: FC<FunctionListPanelProps> = ({
               <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-500" />
               <Input
                 type="text"
-                placeholder="Search functions..."
+                placeholder="Search formulas..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-8 text-xs"
