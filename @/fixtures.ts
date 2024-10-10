@@ -550,7 +550,7 @@ function run(key: string, str: string) {
     const match = pattern.exec(str);
 
     // If a match is found, return the captured group; otherwise, return ''
-    return match ? match[1] : '';
+    return match ? match[1].trim() : '';
 }`,
   },
   {
