@@ -6,8 +6,8 @@ import {
   type CellAddress,
   type CellStates,
 } from "@/types/sheet";
-import { Mutex, Semaphore } from "async-mutex";
-import { SEMAPHORE_MAP } from "../semaphore";
+import { Semaphore } from "async-mutex";
+import { SEMAPHORE_MAP, SEMAPHORE_MUTEX } from "../semaphore";
 
 import { tokenize } from "./lexer";
 import { parse } from "./parser";
@@ -22,7 +22,6 @@ export class CircularDependencyError extends Error {
   }
 }
 
-const semaphoreMutex = new Mutex();
 
 function evaluateAst({
   ast,
@@ -158,7 +157,7 @@ function evaluateAst({
           throw new Error(`Domain not whitelisted: ${parsedUrl.href}`);
         }
         // Acquire the mutex before accessing SEMAPHORE_MAP
-        const semaphore = await semaphoreMutex.runExclusive(() => {
+        const semaphore = await SEMAPHORE_MUTEX.runExclusive(() => {
           let sem = SEMAPHORE_MAP.get(domainSetting.path);
           if (!sem) {
             sem = new Semaphore(domainSetting.parallelism);

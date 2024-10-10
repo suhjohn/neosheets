@@ -1,6 +1,8 @@
+import { SEMAPHORE_MAP, SEMAPHORE_MUTEX } from "@/lib/semaphore";
 import { localForageInstance } from "@/lib/storage";
 import { DomainSetting } from "@/types/domain";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Semaphore } from "async-mutex";
 
 const DEFAULT_DOMAIN_SETTINGS: DomainSetting[] = [
   {
@@ -81,7 +83,9 @@ export function useUpsertDomainSetting() {
 
       // Save the updated domain settings back to storage
       await localForageInstance.setItem(KEY, currentSettings);
-
+      await SEMAPHORE_MUTEX.runExclusive(() => {
+        SEMAPHORE_MAP.set(newDomainSetting.path, new Semaphore(newDomainSetting.parallelism));
+      });
       // Update the react-query cache
       queryClient.setQueryData<DomainSetting[]>(
         ["domainSettings"],
