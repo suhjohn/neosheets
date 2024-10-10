@@ -69,14 +69,14 @@ const getFunctionBindings = async (sheetId: string) => {
       ...binding,
       function: fnIdToFn[binding.functionId]
         ? {
-            ...fnIdToFn[binding.functionId],
-            resource:
-              fnIdToFn[binding.functionId].type === "llm"
-                ? resourceIdToResource[
-                    (fnIdToFn[binding.functionId] as LlmFunctionType).resourceId
-                  ]
-                : null,
-          }
+          ...fnIdToFn[binding.functionId],
+          resource:
+            fnIdToFn[binding.functionId].type === "llm"
+              ? resourceIdToResource[
+              (fnIdToFn[binding.functionId] as LlmFunctionType).resourceId
+              ]
+              : null,
+        }
         : null,
     })),
   };
@@ -84,7 +84,7 @@ const getFunctionBindings = async (sheetId: string) => {
 
 export const useFunctionBindings = (sheetId: string) => {
   return useQuery({
-    queryKey: [KEY, sheetId],
+    queryKey: [KEY, { sheetId }],
     queryFn: async () => {
       return getFunctionBindings(
         sheetId

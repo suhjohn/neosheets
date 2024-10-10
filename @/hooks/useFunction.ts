@@ -83,6 +83,7 @@ export const useCreateFunction = () => {
         ["function", newFunction.id],
         newFunction
       );
+      queryClient.resetQueries({ queryKey: ["functionBindings"] });
       return newFunction;
     },
   });
@@ -112,6 +113,7 @@ export const useCreateLlmFunction = () => {
         ["function", newFunction.id],
         newFunction
       );
+      queryClient.resetQueries({ queryKey: ["functionBindings"] });
       return newFunction;
     },
   });
@@ -199,6 +201,7 @@ export const useUpdateLlmFunction = () => {
       });
       await localForageInstance.setItem(KEY, newFunctions);
       queryClient.setQueryData<FunctionType[]>(["functions"], newFunctions);
+      queryClient.resetQueries({ queryKey: ["functionBindings"] });
     },
   });
 };
@@ -214,6 +217,7 @@ export const useDeleteFunction = () => {
       await localForageInstance.setItem(KEY, newFunctions);
       queryClient.removeQueries({ queryKey: ["function", id] });
       queryClient.setQueryData<FunctionType[]>(["functions"], newFunctions);
+      queryClient.resetQueries({ queryKey: ["functionBindings"] });
     },
   });
 };
