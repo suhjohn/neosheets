@@ -104,15 +104,27 @@ function evaluateAst(
       const { functionBody } = functionObj;
       const transpiledCode = ts.transpile(`${functionBody}`);
 
-      // Prepare the argument string for eval
+      // Prepare the argument string for eval with proper serialization
       let argString: string;
-      if (args.length === 1 && typeof args[0] === "object") {
-        // If the argument is an object, stringify it
+      if (args.length === 1 && typeof args[0] === "object" && !Array.isArray(args[0])) {
+        // If the argument is a single object, stringify it
         argString = JSON.stringify(args[0]);
       } else {
-        // For positional arguments, join them with commas
-        argString = args.join(", ");
+        // Serialize each argument individually to preserve types
+        argString = args
+          .map((arg) => {
+            if (typeof arg === "string") {
+              return JSON.stringify(arg);
+            } else if (typeof arg === "object") {
+              return JSON.stringify(arg);
+            } else {
+              return arg.toString();
+            }
+          })
+          .join(", ");
       }
+
+      console.log(argString);
       // Adjust the function call accordingly
       const res = new Function(`${transpiledCode};\nreturn run(${argString});`)();
       return res;

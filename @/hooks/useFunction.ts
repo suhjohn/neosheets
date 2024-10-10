@@ -120,11 +120,30 @@ export const useCreateLlmFunction = () => {
 };
 
 const getFunctions = async () => {
-  const fns = (await localForageInstance.getItem<FunctionType[]>(KEY)) || [];
-  if (fns.length === 0) {
-    await localForageInstance.setItem(KEY, DEFAULT_FUNCTIONS);
-    return DEFAULT_FUNCTIONS;
-  }
+  // Retrieve existing functions from storage
+  let fns = (await localForageInstance.getItem<FunctionType[]>(KEY)) || [];
+
+  // Create a map for quick lookup of existing functions by ID
+  const fnsMap = new Map(fns.map(func => [func.id, func]));
+
+  // Iterate over DEFAULT_FUNCTIONS to merge updates and add new functions
+  DEFAULT_FUNCTIONS.forEach(defaultFunc => {
+    if (fnsMap.has(defaultFunc.id)) {
+      // If the function exists, merge the default function's properties
+      const existingFunc = fnsMap.get(defaultFunc.id)!;
+      fnsMap.set(defaultFunc.id, { ...existingFunc, ...defaultFunc });
+    } else {
+      // If it's a new default function, add it to the map
+      fnsMap.set(defaultFunc.id, defaultFunc);
+    }
+  });
+
+  // Convert the map back to an array
+  fns = Array.from(fnsMap.values());
+
+  // Update the storage with the merged functions
+  await localForageInstance.setItem(KEY, fns);
+
   return fns;
 };
 

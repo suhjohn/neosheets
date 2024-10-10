@@ -33,6 +33,7 @@ const SUBSTITUTE_FUNCTION_ID = "e1933dc3-952b-4d77-8921-dc2ca6f9f8ad";
 const SEARCH_FUNCTION_ID = "7fc44f59-a014-499a-a954-b5da15ae6b8d";
 const ROUNDUP_FUNCTION_ID = "f8cbbf75-a771-4254-86d1-1b80c69f06c5";
 const ROUNDDOWN_FUNCTION_ID = "728f7461-1be2-44d7-a6bb-380a8ecbfb77";
+const EXTRACT_XML_CONTENT_FUNCTION_ID = "01e17b6d-5390-4edc-9f4a-fe0584d665c9";
 
 export const DEFAULT_FUNCTIONS: FunctionType[] = [
   {
@@ -523,6 +524,34 @@ export const DEFAULT_FUNCTIONS: FunctionType[] = [
     createdAt: "2024-09-18T00:00:00.000Z",
     updatedAt: "2024-09-18T00:00:00.000Z",
   },
+  {
+    id: EXTRACT_XML_CONTENT_FUNCTION_ID,
+    functionName: "EXTRACT_XML_CONTENT",
+    type: "function",
+    createdBy: "neosheets",
+    description:
+      "Extracts content enclosed within specified XML-style tags from a string.",
+    createdAt: "2024-09-18T00:00:00.000Z",
+    updatedAt: "2024-09-18T00:00:00.000Z",
+    functionBody: `/**
+ * Extracts content enclosed within specified XML-style tags from a string.
+ * @param key - The XML tag to search for.
+ * @param str - The string containing XML content.
+ * @returns The content within the specified tags, or null if not found.
+ */
+function run(key: string, str: string) {
+    // Escape the key to handle any special regex characters
+
+    // Construct the regex pattern dynamically”
+    const pattern = new RegExp(\`<\${key}>(.*?)<\\/\${key}>\`, 'is');
+
+    // Execute the regex on the input string
+    const match = pattern.exec(str);
+
+    // If a match is found, return the captured group; otherwise, return ''
+    return match ? match[1] : '';
+}`,
+  },
 ];
 
 export const DEFAULT_FUNCTION_BINDINGS: FunctionBindingType[] = [
@@ -679,6 +708,11 @@ export const DEFAULT_FUNCTION_BINDINGS: FunctionBindingType[] = [
   {
     name: "ROUNDDOWN",
     functionId: ROUNDDOWN_FUNCTION_ID,
+    isCustom: false,
+  },
+  {
+    name: "EXTRACT_XML_CONTENT",
+    functionId: EXTRACT_XML_CONTENT_FUNCTION_ID,
     isCustom: false,
   },
 ];

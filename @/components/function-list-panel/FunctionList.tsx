@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 import { FunctionType } from "@/types/sheet";
 import { Link } from "@remix-run/react";
 import { FC } from "react";
-import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 
 type FunctionListProps = {
@@ -40,7 +39,7 @@ const FunctionList: FC<FunctionListProps> = ({
               "text-left",
               "text-wrap",
               selectedFunctionId !== func.id &&
-                "hover:bg-stone-50 dark:hover:bg-stone-900",
+              "hover:bg-stone-50 dark:hover:bg-stone-900",
               selectedFunctionId === func.id && "bg-stone-100 dark:bg-stone-900"
             )}
           >
@@ -71,16 +70,13 @@ const FunctionList: FC<FunctionListProps> = ({
                 "justify-between",
                 "hover:cursor-pointer",
                 selectedFunctionId !== func.id &&
-                  "hover:bg-stone-50 dark:hover:bg-stone-900",
+                "hover:bg-stone-50 dark:hover:bg-stone-900",
                 selectedFunctionId === func.id &&
-                  "bg-stone-100 dark:bg-stone-900"
+                "bg-stone-100 dark:bg-stone-900"
               )}
             >
               <div className="flex justify-between w-full">
                 <p className="text-sm font-bold">{func.functionName}</p>
-                <Badge variant={"secondary"} className="text-xs">
-                  {func.type}
-                </Badge>
               </div>
               <p
                 className={cn(

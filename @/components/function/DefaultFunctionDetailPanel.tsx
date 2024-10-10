@@ -120,9 +120,9 @@ export function DefaultFunctionDetailPanel({
   }, [showSaved]);
 
   return (
-    <div className="flex flex-col w-full">
+    <div className="flex flex-col w-full max-h-[100dvh] overflow-y-auto">
       {/** Header */}
-      <div className="flex-shrink-0 flex w-full px-2 md:px-4 bg-white dark:bg-stone-950 border-b border-stone-200 dark:border-stone-800 h-10">
+      <div className="z-10 flex-shrink-0 sticky top-0 bg-white dark:bg-stone-950 flex w-full px-2 md:px-4 border-b border-stone-200 dark:border-stone-800 h-10">
         <div className="flex gap-1 items-center justify-between w-full">
           <Link to={`/function/${functionState.id}`} className="">
             <p className="text-xsm">
@@ -154,7 +154,7 @@ export function DefaultFunctionDetailPanel({
           )}
         </div>
       </div>
-      <div className="flex flex-col flex-shrink-0 w-full space-y-4 px-6 py-8 items-center">
+      <div className="z-1 flex flex-col flex-shrink-0 w-full space-y-4 px-6 py-8 items-center">
         <div className="max-w-screen-md flex w-full flex-col gap-4">
           <div className="flex flex-col gap-1">
             <div>
