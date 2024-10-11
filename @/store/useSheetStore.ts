@@ -136,7 +136,6 @@ const handlePromises = (
         });
         promise
           .then((value) => {
-            console.log("Promise resolved", value);
             const updatedState = handleValueUpdate(get().currentSheetState, {
               col: colIndex,
               row: rowIndex,

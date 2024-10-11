@@ -1,13 +1,20 @@
 # Neosheets
 
-Spreadsheets + LLM as first class formulas.
+Spreadsheets where regular code and LLM can be written as formulas.
 
-Define propmt templates with variables, and use them as formulas in spreadsheets.
+## Why do we need another Spreadsheet?
 
-## Development
+Spreadsheets have been around forever, but it's clunky to define a single prompt that can be tested across a dataset.
 
-Run the dev server:
+Claude Workbench is a great start, but there are a couple issues:
 
-```shellscript
-pnpm run dev
-```
+1. It's limited to just Claude, not other providers like OpenAI or Together.
+2. The UX is not really oriented for calling different prompts on a single spreadsheet. 
+
+Neosheets tries to bring the familiar interface of Spreadsheets but allow writing arbitrary code as well as LLM prompts. 
+
+## Features
+- Create Spreadsheet and sub sheets
+- Run formulas on sheets
+- Define custom formulas that can be arbitrary JS / TS code and LLM prompts connecting to the major providers 
+- Define parallelism that the API endpoint can support 

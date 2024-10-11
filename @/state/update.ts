@@ -135,13 +135,56 @@ export const handleFormulaUpdate = ({
     display,
     secretKeys,
   });
-  return {
+
+  // New: Calculate the text height based on the computed value
+  let maxRowHeight = 0;
+  const font = `${DEFAULT_FONT_SIZE}px ${DEFAULT_FONT_FAMILY}`;
+  for (let i = 0; i < state.headerStates.length; i++) {
+    const cell = cellStates[i][row];
+    if (cell) {
+      const cellValue = cell.value;
+      const cellDisplay = cell.display || "hide";
+      const height = calculateTextHeight({
+        text: cellValue,
+        width:
+          state.headerStates[i].width -
+          DEFAULT_CELL_BORDER_WIDTH * 4 -
+          DEFAULT_CELL_PADDING * 4,
+        font,
+        display: cellDisplay,
+        lineHeight: DEFAULT_LINE_HEIGHT,
+      });
+      maxRowHeight = Math.max(maxRowHeight, height, DEFAULT_CELL_HEIGHT);
+    }
+  }
+
+  const newState: SheetState = {
     ...state,
     editingValue: "",
     editingCellPosition: null,
-    cellStates,
+    cellStates: cellStates.map((column, colIndex) =>
+      colIndex === col
+        ? {
+          ...column,
+          [row]: {
+            ...(cellStates[colIndex][row] ?? {}),
+            // Ensure the value is updated
+            value: cellStates[colIndex][row].value,
+            display: cellStates[colIndex][row].display || "hide",
+          },
+        }
+        : column
+    ),
+    rowStates: {
+      ...state.rowStates,
+      [row]: {
+        ...state.rowStates[row],
+        height: maxRowHeight,
+      },
+    },
     promises,
   };
+  return newState;
 };
 
 export const handleCellUpdate = ({
