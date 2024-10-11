@@ -34,6 +34,7 @@ const SEARCH_FUNCTION_ID = "7fc44f59-a014-499a-a954-b5da15ae6b8d";
 const ROUNDUP_FUNCTION_ID = "f8cbbf75-a771-4254-86d1-1b80c69f06c5";
 const ROUNDDOWN_FUNCTION_ID = "728f7461-1be2-44d7-a6bb-380a8ecbfb77";
 const GPT_FUNCTION_ID = "8f6eee66-d496-47e6-a9df-4c8f376ef31a";
+const RANDOM_SAMPLE = "8a30ed09-7fcf-4e48-a3e2-19aa5e2a13ac";
 const EXTRACT_XML_CONTENT_FUNCTION_ID = "01e17b6d-5390-4edc-9f4a-fe0584d665c9";
 
 export const DEFAULT_FUNCTIONS: FunctionType[] = [
@@ -580,6 +581,44 @@ function run(key: string, str: string) {
     description: "Generates a response based on the given prompt, temperature, and model. Defaults to gpt-4o with a temperature of 1.",
     createdAt: "2024-09-18T00:00:00.000Z",
     updatedAt: "2024-09-18T00:00:00.000Z",
+  },
+  {
+    id: RANDOM_SAMPLE,
+    functionName: "RANDOM_SAMPLE",
+    type: "function",
+    createdBy: "neosheets",
+    description: "Returns n random samples from a list. Example usage: =RANDOM_SAMPLE(3, A1:A10)",
+    createdAt: "2024-09-18T00:00:00.000Z",
+    updatedAt: "2024-09-18T00:00:00.000Z",
+    functionBody: `function run(n, values) {
+    // Check if n is greater than the number of values provided
+    // Input validation
+    if (!Number.isInteger(n) || n < 0) {
+        throw new Error("The first argument 'n' must be a non-negative integer.");
+    }
+
+    if (n > values.length) {
+        throw new Error(\`Cannot select \${n} elements from a collection of \${values.length} elements.\`);
+    }
+
+    // If n is 0, return an empty array
+    if (n === 0) {
+        return [];
+    }
+
+    // Create a copy of the values to avoid mutating the original array
+    const valuesCopy = [...values];
+
+    // Fisher-Yates shuffle algorithm to shuffle the array
+    for (let i = valuesCopy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [valuesCopy[i], valuesCopy[j]] = [valuesCopy[j], valuesCopy[i]];
+    }
+
+    // Return the first n elements from the shuffled array
+    return valuesCopy.slice(0, n);
+
+    }`,
   }
 ];
 

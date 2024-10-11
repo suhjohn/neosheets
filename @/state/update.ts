@@ -177,11 +177,6 @@ export const handleCellUpdate = ({
       state.promises ?? {},
       res.promises ?? {}
     );
-    console.log({
-      combinedPromises,
-      statePromises: state.promises,
-      resPromises: res.promises,
-    })
     return {
       ...res,
       promises: combinedPromises,

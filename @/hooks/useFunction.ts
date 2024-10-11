@@ -188,8 +188,8 @@ export const useUpdateFunction = () => {
         return func;
       });
       await localForageInstance.setItem(KEY, newFunctions);
-      queryClient.resetQueries({ queryKey: ["function", args.id] });
       queryClient.setQueryData<FunctionType[]>(["functions"], newFunctions);
+      queryClient.resetQueries({ queryKey: ["functionBindings"] });
     },
   });
 };
