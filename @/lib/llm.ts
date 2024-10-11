@@ -180,7 +180,6 @@ export const generateFunctionBody = ({
   const argsType = `type Args = {
     ${variables.map((varName) => `  ${varName}: string;`).join("\n")}
     };\n`;
-
   // Generate the function body with injected headers and body
   const functionBody = `function getValueAtPath(
       data: any,
@@ -214,10 +213,10 @@ export const generateFunctionBody = ({
     }
     // Replace Mustache variables in messages
     const messages = ${JSON.stringify(
-      functionData.messages,
-      null,
-      2
-    )}.map(message => ({
+        functionData.messages,
+        null,
+        2
+      )}.map(message => ({
       ...message,
       content: message.content.replace(/{{\\s*(\\w+)\\s*}}/g, (_, key) => {
         if (key in args) {
@@ -227,16 +226,21 @@ export const generateFunctionBody = ({
         }
       })
     }));
-
-    const requestBody = {
+    
+    let requestBody;
+    ${functionData.resource.getBody !== undefined && `
+    const getBody = ${functionData.resource.getBody};
+    requestBody = getBody({ messages, model: "${functionData.model}", args: ${functionData.args ? JSON.stringify(JSON.parse(functionData.args)) : "{}"} });`}
+    ${functionData.resource.getBody === undefined && `
+      requestBody = {
       messages: messages,
       model: "${functionData.model}",
-      ${
-        functionData.args
-          ? `...${JSON.stringify(JSON.parse(functionData.args))},`
-          : ""
-      }
-    };
+      ${functionData.args
+      ? `...${JSON.stringify(JSON.parse(functionData.args))},`
+      : ""
+    }
+    };`}
+
     const response = await fetch("${functionData.resource.apiUrl}", {
       method: "POST",
       headers: {
@@ -254,14 +258,13 @@ export const generateFunctionBody = ({
     
 
     const data = await response.json();
-    ${
-      functionData.outputPath !== undefined
-        ? `
+    ${functionData.outputPath !== undefined
+      ? `
       // Extract value using outputPath
       const result = getValueAtPath(data, ${JSON.stringify(functionData.outputPath)});
       return result;
       `
-        : `
+      : `
       return data;
       `
     }

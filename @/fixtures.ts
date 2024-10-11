@@ -1,3 +1,4 @@
+import { ChatMessage } from "./types/chat";
 import { type Resource } from "./types/resource";
 import { type FunctionBindingType, type FunctionType } from "./types/sheet";
 
@@ -578,7 +579,8 @@ function run(key: string, str: string) {
       const data = await response.json();
       return data.choices[0].message.content;
     }`,
-    description: "Generates a response based on the given prompt, temperature, and model. Defaults to gpt-4o with a temperature of 1.",
+    description:
+      "Generates a response based on the given prompt, temperature, and model. Defaults to gpt-4o with a temperature of 1.",
     createdAt: "2024-09-18T00:00:00.000Z",
     updatedAt: "2024-09-18T00:00:00.000Z",
   },
@@ -587,7 +589,8 @@ function run(key: string, str: string) {
     functionName: "RANDOM_SAMPLE",
     type: "function",
     createdBy: "neosheets",
-    description: "Returns n random samples from a list. Example usage: =RANDOM_SAMPLE(3, A1:A10)",
+    description:
+      "Returns n random samples from a list. Example usage: =RANDOM_SAMPLE(3, A1:A10)",
     createdAt: "2024-09-18T00:00:00.000Z",
     updatedAt: "2024-09-18T00:00:00.000Z",
     functionBody: `function run(n, values) {
@@ -619,7 +622,7 @@ function run(key: string, str: string) {
     return valuesCopy.slice(0, n);
 
     }`,
-  }
+  },
 ];
 
 export const DEFAULT_FUNCTION_BINDINGS: FunctionBindingType[] = [
@@ -829,6 +832,31 @@ export const AnthropicChatCompletionResource: Resource = {
   },
   additionalHeaders: {
     "anthropic-version": "2023-06-01",
+  },
+  getBody: ({
+    messages,
+    model,
+    args,
+  }: {
+    messages: ChatMessage[];
+    model: string;
+    args: Record<string, unknown>;
+  }) => {
+    const systemMessages = messages.filter((m) => m.role === "system");
+    if (systemMessages.length > 1) {
+      throw new Error("Only one system message is allowed");
+    }
+    const nonSystemMessages = messages.filter((m) => m.role !== "system");
+    const systemMessage = systemMessages[0];
+    return {
+      system: systemMessage?.content || "",
+      messages: nonSystemMessages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      })),
+      model,
+      ...args,
+    };
   },
 };
 
