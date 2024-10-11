@@ -2,6 +2,12 @@
 
 Spreadsheets where regular code and LLM can be written as formulas.
 
+<video width="640" height="480" controls>
+  <source src="https://github.com/suhjohn/neosheets/raw/refs/heads/main/docs/demo-moderation.mov" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+
+
 ## Why do we need another Spreadsheet?
 
 Spreadsheets have been around forever, but it's clunky to define a single prompt that can be tested across a dataset.
