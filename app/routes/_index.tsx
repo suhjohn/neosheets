@@ -14,7 +14,7 @@ export const meta: MetaFunction = () => {
 export default function LandingPage() {
   return (
     <div className="flex flex-col h-[100dvh]">
-      <header className="px-4 lg:px-6 h-14 flex items-center">
+      <header className="flex-shrink-0 px-4 lg:px-6 h-14 flex items-center">
         <Link className="flex items-center justify-center" to="#">
           <p
             className={cn(
@@ -34,12 +34,11 @@ export default function LandingPage() {
                   AI-Powered Spreadsheets
                 </h1>
                 <p className="mx-auto max-w-screen-md text-md lg:text-lg font-[400]">
-                  Write LLM prompts and Typescript functions and use them as
-                  formulas. Call REST APIs without having to write clunky App
-                  Scripts.
+                  {`Write LLM prompts with {{ variable }} and arbitrary functions in Typescript as formulas. Use them
+                  on a familiar spreadsheet interface.`}
                 </p>
               </div>
-              <div className="space-x-4">
+              <div className="space-x-4 flex">
                 <Button className="h-auto text-sm px-0">
                   <Link
                     to="/spreadsheet"
@@ -51,7 +50,26 @@ export default function LandingPage() {
                     <p>Get started</p>
                   </Link>
                 </Button>
+                <Button className="h-auto text-sm px-4" variant="secondary">
+                  <Link
+                    to="https://github.com/suhjohn/neosheets"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <div className="flex gap-2">
+                      <IoLogoGithub size={20} />
+                      <p>Star on GitHub</p>
+                    </div>
+                  </Link>
+                </Button>
               </div>
+              <video width="100%" height="480" controls>
+                <source
+                  src="https://cdn.discordapp.com/attachments/981832774157762570/1294156876111675444/demo-moderation-v1.mov?ex=6709fd03&is=6708ab83&hm=d22c00be8902bf4198bcade41fe013b148655be47d8825146b18b482b01d5136&"
+                  type="video/mp4"
+                />
+                Your browser does not support the video tag.
+              </video>
             </div>
           </div>
         </section>
