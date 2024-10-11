@@ -139,7 +139,8 @@ const VirtualizedSheet: FC<VirtualizedSheetProps> = ({
   } | null>(null);
   const autoScrollAnimationFrame = useRef<number | null>(null);
   const autoScrollMargin = 5; // Pixels from edge to trigger auto-scroll
-  const scrollSpeed = 10; // Pixels per frame
+  const scrollSpeed = 10; // Base scroll speed
+  const autoScrollThreshold = 50; // Pixels from edge to start accelerating
 
   // Handler to detect mouse position and set scroll direction
   const handleMouseMove = useCallback(
@@ -195,11 +196,11 @@ const VirtualizedSheet: FC<VirtualizedSheetProps> = ({
   const performScroll = useCallback(() => {
     if (autoScrollDirection && containerRef.current) {
       const { x, y } = autoScrollDirection;
-      containerRef.current.scrollBy(x * scrollSpeed, y * scrollSpeed);
+      containerRef.current.scrollBy(x, y); // Scroll by the calculated speed
       // Schedule the next scroll
       autoScrollAnimationFrame.current = requestAnimationFrame(performScroll);
     }
-  }, [autoScrollDirection, scrollSpeed]);
+  }, [autoScrollDirection]);
 
   // Effect to start auto-scrolling when direction changes
   useEffect(() => {
@@ -595,29 +596,50 @@ const VirtualizedSheet: FC<VirtualizedSheetProps> = ({
     []
   );
 
-  // Global mouse move handler
+  // Global mouse move handler with auto-scroll
   const handleAutofillMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (isAutofilling && containerRef.current && autofillStart?.current) {
+      if (isAutofilling && containerRef.current && autofillStart.current) {
         const rect = containerRef.current.getBoundingClientRect();
         const mouseY = e.clientY - rect.top + containerRef.current.scrollTop;
 
-        // Calculate current row based on mouseY
-        let currentRow = 0;
-        let accumulatedHeight = COLUMN_HEADER_HEIGHT; // Assuming a constant height for headers
-        for (let i = 0; i < rowCount; i++) {
-          const rowHeight = getRowHeight({ rowIndex: i, rowStates });
-          accumulatedHeight += rowHeight;
-          if (mouseY < accumulatedHeight) {
-            currentRow = i;
-            break;
+        // Use virtualRows to find the current row
+        const currentVirtualRow = virtualRows.find(
+          (vRow) => mouseY >= vRow.start && mouseY < vRow.end
+        );
+
+        if (currentVirtualRow) {
+          setAutofillEnd({ row: currentVirtualRow.index, col: autofillStart.current.col });
+
+          const distanceFromTop = e.clientY - rect.top;
+          const distanceFromBottom = rect.bottom - e.clientY;
+
+          let speedY = 0;
+
+          // Calculate scroll speed based on distance from top
+          if (distanceFromTop < autoScrollThreshold) {
+            // The closer to the edge, the slower the scroll
+            speedY = (distanceFromTop / autoScrollThreshold) * scrollSpeed;
+          }
+
+          // Calculate scroll speed based on distance from bottom
+          if (distanceFromBottom < autoScrollThreshold) {
+            // The closer to the edge, the slower the scroll
+            speedY = -(distanceFromBottom / autoScrollThreshold) * scrollSpeed;
+          }
+
+          // Determine scroll direction and speed
+          if (distanceFromTop < autoScrollThreshold) {
+            setAutoScrollDirection({ x: 0, y: speedY });
+          } else if (distanceFromBottom < autoScrollThreshold) {
+            setAutoScrollDirection({ x: 0, y: speedY });
+          } else {
+            setAutoScrollDirection(null);
           }
         }
-
-        setAutofillEnd({ row: currentRow, col: autofillStart.current.col });
       }
     },
-    [isAutofilling, rowCount, rowStates]
+    [isAutofilling, virtualRows, autofillStart, scrollSpeed]
   );
 
   // Global mouse up handler
@@ -639,7 +661,8 @@ const VirtualizedSheet: FC<VirtualizedSheetProps> = ({
       autofillStart.current = null;
       setAutofillEnd(null);
     }
-  }, [isAutofilling, dispatch, autofillStart, autofillEnd]);
+  }, [isAutofilling, dispatch, autofillEnd]);
+
   useEffect(() => {
     if (isAutofilling) {
       document.addEventListener("mousemove", handleAutofillMouseMove);
@@ -843,12 +866,10 @@ const VirtualizedSheet: FC<VirtualizedSheetProps> = ({
                   handleRowMouseEnter={handleRowMouseEnter}
                   handleRowMouseDown={handleRowMouseDown}
                   handleRowContextMenu={handleRowContextMenu}
-                  autofillRange={
-                    {
-                      start: autofillStart.current,
-                      end: autofillEnd,
-                    }
-                  }
+                  autofillRange={{
+                    start: autofillStart.current,
+                    end: autofillEnd,
+                  }}
                   onAutofillInitiate={handleInitiateAutofill}
                 />
               );
