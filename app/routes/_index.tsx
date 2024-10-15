@@ -65,7 +65,7 @@ export default function LandingPage() {
               </div>
               <video width="100%" height="480" controls>
                 <source
-                  src="https://cdn.discordapp.com/attachments/981832774157762570/1294156876111675444/demo-moderation-v1.mov?ex=6709fd03&is=6708ab83&hm=d22c00be8902bf4198bcade41fe013b148655be47d8825146b18b482b01d5136&"
+                  src="https://github.com/suhjohn/neosheets/raw/refs/heads/main/docs/demo-moderation.mov"
                   type="video/mp4"
                 />
                 Your browser does not support the video tag.
