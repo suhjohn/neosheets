@@ -44,6 +44,21 @@ export const handleCopy = (
     copiedCells.push(rowData);
   }
 
+  // Serialize copiedCells to TSV format for clipboard
+  const tsvData = copiedCells
+    .map(row => row.map(cell => `"${cell.value.replace(/"/g, '""')}"`).join('\t'))
+    .join('\n');
+
+  // Copy serialized data to the system clipboard
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      void navigator.clipboard.writeText(tsvData);
+      console.log('Copied to system clipboard successfully.');
+    } catch (error) {
+      console.error('Failed to copy to system clipboard:', error);
+    }
+  }
+
   return {
     ...state,
     clipboard: {
