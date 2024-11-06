@@ -7,7 +7,7 @@ import { initialState } from "@/state/sheetReducer";
 import { SheetStateContext, useDispatch } from "@/store/useSheetStore";
 import { Spreadsheet, type CellDisplay, type CellState } from "@/types/sheet";
 import { useSearchParams } from "@remix-run/react";
-import { PlusIcon, Redo2, SidebarIcon, Undo2 } from "lucide-react";
+import { PlusIcon, Redo2, SidebarIcon, Undo2, Wand } from "lucide-react";
 import Papa from "papaparse";
 import type React from "react";
 import { useCallback, useContext, useRef, useState } from "react";
@@ -27,6 +27,7 @@ import { ResizeRowDialog } from "./ResizeRowDialog";
 import { SheetProvider } from "./SheetContext";
 import { DrawerNavigation } from "./SideNavigation";
 import { Button } from "./ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog"; // Import Dialog components
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -91,6 +92,13 @@ const SpreadsheetContent: React.FC<SheetProps> = ({
   const { toast } = useToast();
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const [isAutofillDialogOpen, setIsAutofillDialogOpen] = useState(false);
+  const [autofillRange, setAutofillRange] = useState<{ startRow: number; col: number; endRow: number; }>({
+    col: selectedCellPosition?.col ?? selectedCellRange?.start.col ?? 0,
+    startRow: selectedCellPosition?.row ?? selectedCellRange?.start.row ?? 0,
+    endRow: 0,
+  });
 
   const handleContextMenu = useCallback((event: React.MouseEvent) => {
     event.preventDefault();
@@ -435,6 +443,27 @@ const SpreadsheetContent: React.FC<SheetProps> = ({
     [dispatch, toast]
   );
 
+  const handleAutofillConfirm = () => {
+    dispatch({
+      type: "PERFORM_AUTOFILL",
+      payload: {
+        fillRange: {
+          start: { row: autofillRange.startRow, col: autofillRange.col },
+          end: { row: autofillRange.endRow, col: autofillRange.col },
+        },
+      },
+    });
+    setIsAutofillDialogOpen(false);
+  };
+
+  const handleAutofillChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setAutofillRange((prev) => ({
+      ...prev,
+      [name]: Number(value),
+    }));
+  };
+
   return (
     <div
       className={`relative flex flex-col h-full w-full overflow-hidden flex-1 ${isDragging ? "bg-blue-100 dark:bg-blue-900" : ""
@@ -481,6 +510,18 @@ const SpreadsheetContent: React.FC<SheetProps> = ({
                 </TooltipTrigger>
                 <TooltipContent>
                   <p className="text-xs">Wrap text</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip delayDuration={250}>
+                <TooltipTrigger>
+                  <Button variant="ghost" size="sm" onClick={() => setIsAutofillDialogOpen(true)}>
+                    <Wand size={16} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Autofill</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -696,6 +737,64 @@ const SpreadsheetContent: React.FC<SheetProps> = ({
         style={{ display: "none" }}
         onChange={handleFileSelected}
       />
+      {/* Autofill Dialog */}
+      <Dialog open={isAutofillDialogOpen} onOpenChange={setIsAutofillDialogOpen}>
+        <DialogContent className="h-auto max-w-md">
+          <DialogHeader>
+            <DialogTitle>Autofill Options</DialogTitle>
+            <DialogDescription>
+              Specify the range to apply autofill.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <div className="flex flex-col">
+              <label htmlFor="startCol" className="mb-1 text-sm font-medium">
+                Column
+              </label>
+              <Input
+                type="number"
+                id="col"
+                name="col"
+                value={autofillRange.col}
+                onChange={handleAutofillChange}
+                min={0}
+              />
+            </div>
+            <div className="flex flex-col">
+              <label htmlFor="startRow" className="mb-1 text-sm font-medium">
+                Start Row
+              </label>
+              <Input
+                type="number"
+                id="startRow"
+                name="startRow"
+                value={autofillRange.startRow}
+                onChange={handleAutofillChange}
+                min={0}
+              />
+            </div>
+            <div className="flex flex-col">
+              <label htmlFor="endRow" className="mb-1 text-sm font-medium">
+                End Row
+              </label>
+              <Input
+                type="number"
+                id="endRow"
+                name="endRow"
+                value={autofillRange.endRow}
+                onChange={handleAutofillChange}
+                min={autofillRange.startRow}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleAutofillConfirm}>Autofill</Button>
+            <Button variant="ghost" onClick={() => setIsAutofillDialogOpen(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
